@@ -1,0 +1,12 @@
+<launch>
+    
+    <!-- Argument to specify configuration file for communication. -->
+    <arg name="comm_config" default="comm.yaml" 
+     description=".yaml file to configure the comms"/>
+  
+    <!-- Main simulation node -->
+    <node pkg="metafly_control" exec="controller" name="controller">
+      <param from="$(find-pkg-share metafly_control)/config/$(var comm_config)"/>
+    </node>
+  
+  </launch>

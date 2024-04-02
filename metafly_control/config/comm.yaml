@@ -1,0 +1,4 @@
+/**:
+  ros__parameters:
+    timer_frequency : 100.0
+    baud_rate_int : 115200

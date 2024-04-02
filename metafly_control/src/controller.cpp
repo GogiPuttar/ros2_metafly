@@ -1,0 +1,154 @@
+#include <iostream>
+#include <SerialStream.h>
+#include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/float32_multi_array.hpp"
+#include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/u_int64.hpp"
+#include <chrono> // Include chrono header for chrono literals
+
+// Use 'LibSerial::' instead of 'using namespace LibSerial;'
+using LibSerial::SerialStream;
+using LibSerial::BaudRate;
+using namespace std::chrono_literals; // Add this line for chrono literals
+
+class Controller : public rclcpp::Node
+{
+public:
+    Controller() : Node("controller")
+    {
+        // Parameter description
+        auto timer_frequency_des = rcl_interfaces::msg::ParameterDescriptor{};
+        auto baud_rate_des = rcl_interfaces::msg::ParameterDescriptor{};
+
+        timer_frequency_des.description = "Timer callback frequency [Hz]";
+        baud_rate_des.description = "Baud rate for communication [bits/s]";
+
+        // Declare default parameters values
+        declare_parameter("timer_frequency", -1.0, timer_frequency_des);     // Hz 
+        declare_parameter("baud_rate_int", -1, baud_rate_des);         // Bits per second
+
+        // Get params - Read params from yaml file that is passed in the launch file
+        timer_frequency_ = get_parameter("timer_frequency").get_parameter_value().get<double>();
+        baud_rate_int_ = get_parameter("baud_rate_int").get_parameter_value().get<int>();
+        baud_rate_ = integerToBaudRate(baud_rate_int_);
+
+        // Check all params
+        check_yaml_params();
+
+        // Initialize serial port
+        serial_port_.Open("/dev/ttyACM0");
+        serial_port_.SetBaudRate(baud_rate_);
+
+        // Create publisher for sending control commands
+        publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("/control_commands", 10);
+
+        // Create timer to periodically send control commands
+        timer_ = this->create_wall_timer(std::chrono::milliseconds(static_cast<int>(1000.0 / timer_frequency_)), std::bind(&Controller::sendControlCommands, this));
+    }
+
+private:
+    double timer_frequency_ = -1.0; // Hz
+    int baud_rate_int_ = -1; // bits per second
+    BaudRate baud_rate_ = LibSerial::BaudRate::BAUD_INVALID; // bits per second
+
+    void sendControlCommands()
+    {
+        // Create Float32MultiArray message
+        auto msg = std::make_shared<std_msgs::msg::Float32MultiArray>();
+        msg->data.push_back(speed_);    // Add speed value (0-100)
+        msg->data.push_back(steering_); // Add steering value (-100 to 100)
+
+        // Publish control commands
+        publisher_->publish(*msg);
+
+        // Debug output
+        RCLCPP_INFO(this->get_logger(), "Sent control commands: Speed=%.2f, Steering=%.2f", speed_, steering_);
+    }
+
+    SerialStream serial_port_;
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr publisher_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    float speed_ = 0.0;     // Speed value (0-100)
+    float steering_ = 0.0;  // Steering value (-100 to 100)
+
+    void check_yaml_params()
+    {
+        if (timer_frequency_ == -1.0 ||
+            baud_rate_int_ == -1
+            )
+        {
+            RCLCPP_ERROR(this->get_logger(), "Param timer frequency: %f", timer_frequency_);
+            RCLCPP_ERROR(this->get_logger(), "Param Baud rate: %d", baud_rate_int_);
+            
+            throw std::runtime_error("Missing necessary parameters in diff_params.yaml!");
+        }
+        if (timer_frequency_ <= 0.0 ||
+            baud_rate_ == LibSerial::BaudRate::BAUD_INVALID 
+          )
+        {
+            RCLCPP_ERROR(this->get_logger(), "Param timer frequency: %f", timer_frequency_);
+            RCLCPP_ERROR(this->get_logger(), "Param Baud rate: %d", baud_rate_int_);
+            
+            throw std::runtime_error("Incorrect params in diff_params.yaml!");
+        }
+    }
+
+    // Function to convert an integer to a BaudRate enum value
+    BaudRate integerToBaudRate(int baud_int)
+    {
+        // Check the integer value against each possible baud rate using a switch-case
+        switch (baud_int)
+        {
+            case 50:
+                return BaudRate::BAUD_50;
+            case 75:
+                return BaudRate::BAUD_75;
+            case 110:
+                return BaudRate::BAUD_110;
+            case 134:
+                return BaudRate::BAUD_134;
+            case 150:
+                return BaudRate::BAUD_150;
+            case 200:
+                return BaudRate::BAUD_200;
+            case 300:
+                return BaudRate::BAUD_300;
+            case 600:
+                return BaudRate::BAUD_600;
+            case 1200:
+                return BaudRate::BAUD_1200;
+            case 1800:
+                return BaudRate::BAUD_1800;
+            case 2400:
+                return BaudRate::BAUD_2400;
+            case 4800:
+                return BaudRate::BAUD_4800;
+            case 9600:
+                return BaudRate::BAUD_9600;
+            case 19200:
+                return BaudRate::BAUD_19200;
+            case 38400:
+                return BaudRate::BAUD_38400;
+            case 57600:
+                return BaudRate::BAUD_57600;
+            case 115200:
+                return BaudRate::BAUD_115200;
+            case 230400:
+                return BaudRate::BAUD_230400;
+            // Add other cases for additional baud rates as needed
+            default:
+                return BaudRate::BAUD_INVALID; // Return invalid if no match found
+        }
+    }
+};
+
+
+
+int main(int argc, char *argv[])
+{
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<Controller>();
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+    return 0;
+}
