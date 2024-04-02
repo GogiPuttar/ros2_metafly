@@ -1,14 +1,19 @@
 #include <iostream>
-#include <SerialStream.h>
+#include <SerialPort.h>
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/u_int64.hpp"
+#include <vector>
 #include <chrono> // Include chrono header for chrono literals
 
 // Use 'LibSerial::' instead of 'using namespace LibSerial;'
-using LibSerial::SerialStream;
+using LibSerial::SerialPort;
 using LibSerial::BaudRate;
+using LibSerial::CharacterSize;
+using LibSerial::Parity;
+using LibSerial::StopBits;
+using LibSerial::FlowControl;
 using namespace std::chrono_literals; // Add this line for chrono literals
 
 class Controller : public rclcpp::Node
@@ -35,12 +40,33 @@ public:
         // Check all params
         check_yaml_params();
 
-        // Initialize serial port
-        serial_port_.Open("/dev/ttyACM0");
-        serial_port_.SetBaudRate(baud_rate_);
+        try 
+        {
+            serial_port_.Open("/dev/ttyACM1"); // Adjust the port name as necessary
+            serial_port_.SetBaudRate(baud_rate_); // Adjust the baud rate
+            serial_port_.SetCharacterSize(CharacterSize::CHAR_SIZE_8);
+            serial_port_.SetParity(Parity::PARITY_NONE);
+            serial_port_.SetStopBits(StopBits::STOP_BITS_1);
+            serial_port_.SetFlowControl(FlowControl::FLOW_CONTROL_NONE);
 
-        // Create publisher for sending control commands
-        publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("/control_commands", 10);
+            RCLCPP_INFO(this->get_logger(), "Serial port opened successfully.");
+        }
+        catch (const LibSerial::OpenFailed &e) 
+        {
+            RCLCPP_ERROR(this->get_logger(), "Failed to open serial port: %s", e.what());
+            throw;
+        } 
+        catch (const std::exception &e) 
+        {
+            RCLCPP_ERROR(this->get_logger(), "An error occurred during serial port setup: %s", e.what());
+            throw;
+        }
+
+        // // Subscribers
+        // joint_states_subscriber_ = create_subscription<sensor_msgs::msg::JointState>(
+        // "joint_states", 10, std::bind(
+        //     &odometry::joint_states_callback, this,
+        //     std::placeholders::_1));
 
         // Create timer to periodically send control commands
         timer_ = this->create_wall_timer(std::chrono::milliseconds(static_cast<int>(1000.0 / timer_frequency_)), std::bind(&Controller::sendControlCommands, this));
@@ -51,25 +77,66 @@ private:
     int baud_rate_int_ = -1; // bits per second
     BaudRate baud_rate_ = LibSerial::BaudRate::BAUD_INVALID; // bits per second
 
+    SerialPort serial_port_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    char speed_ = 0;     // Speed value (0-100)
+    char steering_ = 0;  // Steering value (-100 to 100)
+
     void sendControlCommands()
     {
-        // Create Float32MultiArray message
-        auto msg = std::make_shared<std_msgs::msg::Float32MultiArray>();
-        msg->data.push_back(speed_);    // Add speed value (0-100)
-        msg->data.push_back(steering_); // Add steering value (-100 to 100)
+        // WRITE
 
-        // Publish control commands
-        publisher_->publish(*msg);
+        // Create Float32MultiArray message
+        std::vector<char> msg;
+        msg.push_back(speed_);    // Add speed value (0-100)
+        msg.push_back(steering_); // Add steering value (-100 to 100)
+
+        // Send data over serial
+        std::vector<char> bytes_written(msg.size() * sizeof(char));
+        std::memcpy(bytes_written.data(), msg.data(), bytes_written.size());
+        std::string data_string(bytes_written.begin(), bytes_written.end());
+        serial_port_.Write(data_string);
 
         // Debug output
-        RCLCPP_INFO(this->get_logger(), "Sent control commands: Speed=%.2f, Steering=%.2f", speed_, steering_);
-    }
+        // RCLCPP_INFO(this->get_logger(), "Sent control commands: Speed=%.2f, Steering=%.2f", speed_, steering_);
 
-    SerialStream serial_port_;
-    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr publisher_;
-    rclcpp::TimerBase::SharedPtr timer_;
-    float speed_ = 0.0;     // Speed value (0-100)
-    float steering_ = 0.0;  // Steering value (-100 to 100)
+        // READ
+
+        // Wait for response
+        std::vector<char> response;
+        try 
+        {
+            // int timeout_ms = 1000/timer_frequency_; // timeout value in milliseconds
+            // int timeout_ms = 1000; // timeout value in milliseconds
+            int timeout_ms = 1; // timeout value in milliseconds
+
+            char reading = 0;      // variable to store the read result
+
+            serial_port_.ReadByte( reading, timeout_ms );
+            response.push_back(reading);
+            serial_port_.ReadByte( reading, timeout_ms );
+            response.push_back(reading);
+            serial_port_.ReadByte( reading, timeout_ms );
+            response.push_back(reading);
+            serial_port_.ReadByte( reading, timeout_ms );
+            response.push_back(reading);
+
+            // RCLCPP_INFO(this->get_logger(), "UNGA BUNGA: %d", reading);
+        } 
+        catch (const std::exception& e) 
+        {
+            RCLCPP_ERROR(this->get_logger(), "Exception occurred while reading from serial port: %s", e.what());
+        }
+
+        if (response.size() == 4 && response.at(0) == '!') 
+        {
+            RCLCPP_INFO(this->get_logger(), "Received confirmation: %c, %d, %d", response.at(0), response.at(1), response.at(2));
+        } 
+        else 
+        {
+            RCLCPP_ERROR(this->get_logger(), "Invalid response from Arduino");
+        }
+    }
 
     void check_yaml_params()
     {
