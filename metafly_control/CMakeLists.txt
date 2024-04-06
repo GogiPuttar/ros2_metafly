@@ -16,6 +16,7 @@ find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(metafly_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 # Add the path to libserial library
@@ -36,11 +37,16 @@ if(BUILD_TESTING)
 endif()
 
 add_executable(controller src/controller.cpp)
-ament_target_dependencies(controller rclcpp tf2_ros tf2 geometry_msgs)
+ament_target_dependencies(controller rclcpp tf2_ros tf2 geometry_msgs metafly_interfaces)
 target_link_libraries(controller "${cpp_typesupport_target}" ${LIBSERIAL})
+
+add_executable(teleop_keyboard src/teleop_keyboard.cpp)
+ament_target_dependencies(teleop_keyboard rclcpp metafly_interfaces)
+target_link_libraries(teleop_keyboard "${cpp_typesupport_target}" ncurses)
 
 install(TARGETS
   controller
+  teleop_keyboard
   DESTINATION lib/${PROJECT_NAME}
 )
 

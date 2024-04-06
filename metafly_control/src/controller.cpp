@@ -4,6 +4,7 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/u_int64.hpp"
+#include "metafly_interfaces/msg/controls.hpp"
 #include <vector>
 #include <chrono> // Include chrono header for chrono literals
 
@@ -16,10 +17,10 @@ using LibSerial::StopBits;
 using LibSerial::FlowControl;
 using namespace std::chrono_literals; // Add this line for chrono literals
 
-class Controller : public rclcpp::Node
+class controller : public rclcpp::Node
 {
 public:
-    Controller() : Node("controller")
+    controller() : Node("controller")
     {
         // Parameter description
         auto timer_frequency_des = rcl_interfaces::msg::ParameterDescriptor{};
@@ -42,7 +43,7 @@ public:
 
         try 
         {
-            serial_port_.Open("/dev/ttyACM1"); // Adjust the port name as necessary
+            serial_port_.Open("/dev/ttyACM0"); // Adjust the port name as necessary
             serial_port_.SetBaudRate(baud_rate_); // Adjust the baud rate
             serial_port_.SetCharacterSize(CharacterSize::CHAR_SIZE_8);
             serial_port_.SetParity(Parity::PARITY_NONE);
@@ -62,14 +63,14 @@ public:
             throw;
         }
 
-        // // Subscribers
-        // joint_states_subscriber_ = create_subscription<sensor_msgs::msg::JointState>(
-        // "joint_states", 10, std::bind(
-        //     &odometry::joint_states_callback, this,
-        //     std::placeholders::_1));
+        // Subscribers
+        cmd_controls_subscriber_ = create_subscription<metafly_interfaces::msg::Controls>(
+        "/cmd_controls", 10, std::bind(
+            &controller::cmd_controls_callback, this,
+            std::placeholders::_1));
 
         // Create timer to periodically send control commands
-        timer_ = this->create_wall_timer(std::chrono::milliseconds(static_cast<int>(1000.0 / timer_frequency_)), std::bind(&Controller::sendControlCommands, this));
+        timer_ = this->create_wall_timer(std::chrono::milliseconds(static_cast<int>(1000.0 / timer_frequency_)), std::bind(&controller::sendArduinoCommands, this));
     }
 
 private:
@@ -82,7 +83,9 @@ private:
     char speed_ = 0;     // Speed value (0-100)
     char steering_ = 0;  // Steering value (-100 to 100)
 
-    void sendControlCommands()
+    rclcpp::Subscription<metafly_interfaces::msg::Controls>::SharedPtr cmd_controls_subscriber_;
+
+    void sendArduinoCommands()
     {
         // WRITE
 
@@ -125,7 +128,7 @@ private:
         } 
         catch (const std::exception& e) 
         {
-            RCLCPP_ERROR(this->get_logger(), "Exception occurred while reading from serial port: %s", e.what());
+            RCLCPP_DEBUG(this->get_logger(), "Exception occurred while reading from serial port: %s", e.what());
         }
 
         if (response.size() == 4 && response.at(0) == '!') 
@@ -134,8 +137,15 @@ private:
         } 
         else 
         {
-            RCLCPP_ERROR(this->get_logger(), "Invalid response from Arduino");
+            RCLCPP_DEBUG(this->get_logger(), "Invalid response from Arduino");
         }
+    }
+
+    /// \brief cmd_controls topic callback
+    void cmd_controls_callback(const metafly_interfaces::msg::Controls & msg)
+    {
+        speed_ = msg.speed;
+        steering_ = msg.steering;
     }
 
     void check_yaml_params()
@@ -214,7 +224,7 @@ private:
 int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<Controller>();
+    auto node = std::make_shared<controller>();
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
