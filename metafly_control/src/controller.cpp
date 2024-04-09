@@ -43,7 +43,7 @@ public:
 
         try 
         {
-            serial_port_.Open("/dev/ttyACM0"); // Adjust the port name as necessary
+            serial_port_.Open("/dev/ttyUSB0"); // Adjust the port name as necessary
             serial_port_.SetBaudRate(baud_rate_); // Adjust the baud rate
             serial_port_.SetCharacterSize(CharacterSize::CHAR_SIZE_8);
             serial_port_.SetParity(Parity::PARITY_NONE);
