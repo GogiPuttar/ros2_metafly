@@ -1,0 +1,9 @@
+<launch>
+    
+    <!-- Communicates with the Arduino -->
+    <include file="$(find-pkg-share metafly_control)/launch/controller.launch.xml"></include>
+    
+    <!-- Allows teleop through PS3 controller -->
+    <node pkg="metafly_control" exec="teleop_ps3" name="teleop_ps3"></node>
+  
+  </launch>

@@ -16,6 +16,7 @@ find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(metafly_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
@@ -44,9 +45,14 @@ add_executable(teleop_keyboard src/teleop_keyboard.cpp)
 ament_target_dependencies(teleop_keyboard rclcpp metafly_interfaces)
 target_link_libraries(teleop_keyboard "${cpp_typesupport_target}" ncurses)
 
+add_executable(teleop_ps3 src/teleop_ps3.cpp)
+ament_target_dependencies(teleop_ps3 rclcpp metafly_interfaces)
+target_link_libraries(teleop_ps3 "${cpp_typesupport_target}")
+
 install(TARGETS
   controller
   teleop_keyboard
+  teleop_ps3
   DESTINATION lib/${PROJECT_NAME}
 )
 
