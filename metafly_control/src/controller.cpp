@@ -133,7 +133,7 @@ private:
 
         if (response.size() == 4 && response.at(0) == '!') 
         {
-            RCLCPP_INFO(this->get_logger(), "Received confirmation: %c, %d, %d", response.at(0), response.at(1), response.at(2));
+            RCLCPP_DEBUG(this->get_logger(), "Received confirmation: %c, %d, %d", response.at(0), response.at(1), response.at(2));
         } 
         else 
         {

@@ -65,7 +65,6 @@ private:
         // Initialize metafly controls message
         metafly_interfaces::msg::Controls msg;
 
-
         // Joystick closing needs to be handled correctly, hence the infinite time loop
         while (true) 
         {
