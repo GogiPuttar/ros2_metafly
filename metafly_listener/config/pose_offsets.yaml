@@ -1,5 +1,6 @@
 # Pose offsets
 # Broadcasted pose values of different birds when they are actually perfectly level
+# Position and orientation offsets are SEPARTELY INVERTED, i.e., orientation is inverted locally, and position is inverted globally
 charlie_1:
   position:
     x: 0.0

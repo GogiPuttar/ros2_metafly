@@ -54,22 +54,25 @@ class UdpListener(Node):
         with open(file_path, 'r') as f:
             return yaml.safe_load(f)
 
-    def invert_transform(self, position, orientation):
+    def invert_offset(self, position, orientation):
+        """
+        Inverts the position and orientation offsets, separately
+        Does not invert the combined transform of the position and orientation
+        """
         # Convert position and orientation to transformation matrix
         trans_mat = tf_transformations.quaternion_matrix((
             orientation['x'], orientation['y'], orientation['z'], orientation['w']))
-        trans_mat[0][3] = position['x']
-        trans_mat[1][3] = position['y']
-        trans_mat[2][3] = position['z']
 
         # Invert the transformation matrix
         inverted_trans_mat = tf_transformations.inverse_matrix(trans_mat)
 
-        # Extract the inverted position and orientation
+        # Invert the position offset, in the world frame
+        inverted_position = [-position['x'], 
+                             -position['y'],
+                             -position['z']
+                             ]
 
-        # inverted_position = inverted_trans_mat[:3, 3]
-        inverted_position = -trans_mat[:3, 3]
-
+        # Extract the inverted orientation
         inverted_orientation = tf_transformations.quaternion_from_matrix(inverted_trans_mat)
 
         # return inverted_position, inverted_orientation
@@ -93,7 +96,7 @@ class UdpListener(Node):
 
             offset_position = self.offset['position']
             offset_orientation = self.offset['orientation']
-            inverted_offset_position, inverted_offset_orientation = self.invert_transform(offset_position, offset_orientation)
+            inverted_offset_position, inverted_offset_orientation = self.invert_offset(offset_position, offset_orientation)
 
             # Adjust the position and orientation
             adjusted_position = {
