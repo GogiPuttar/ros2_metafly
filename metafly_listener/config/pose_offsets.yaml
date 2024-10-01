@@ -1,0 +1,12 @@
+# Pose offsets
+# Broadcasted pose values of different birds when they are actually perfectly level
+charlie_1:
+  position:
+    x: 0.0
+    y: 0.0
+    z: 0.09
+  orientation:
+    x: 0.445
+    y: 0.209
+    z: -0.532
+    w: 0.689
