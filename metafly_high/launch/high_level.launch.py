@@ -15,15 +15,15 @@ def generate_launch_description():
     # Declare the ps3_override argument
     ps3_override = LaunchConfiguration('ps3_override', default='false')
 
-    # Declare the use_rviz argument
-    use_rviz = LaunchConfiguration('use_rviz', default='true')
+    # Declare the use_high_rviz argument
+    use_high_rviz = LaunchConfiguration('use_high_rviz', default='true')
 
     # Declare bird_name argument
     bird_name = LaunchConfiguration('bird_name', default='charlie_1')
     
     # Path to the RViz config file
     rviz_config_path = os.path.join(
-        get_package_share_directory('metafly_listener'), 'config', 'tracking_config.rviz')
+        get_package_share_directory('metafly_high'), 'config', 'basic.rviz')
 
     # Path to listener.launch.py
     listener_launch_path = os.path.join(get_package_share_directory('metafly_listener'), 'launch', 'listener.launch.py')
@@ -37,6 +37,16 @@ def generate_launch_description():
         condition=IfCondition(EqualsSubstitution(policy, 'basic'))
     )
 
+    # RViz node (conditionally launched if use_high_rviz is true)
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen',
+        arguments=['-d', rviz_config_path],
+        condition=IfCondition(use_high_rviz)
+    )
+
     # Include listener.launch.py with use_rviz set to false and ps3_override passed through
     listener_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(listener_launch_path),
@@ -45,16 +55,6 @@ def generate_launch_description():
             'ps3_override': ps3_override,
             'bird_name': bird_name
         }.items()
-    )
-
-    # RViz node (conditionally launched if use_rviz is true)
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        arguments=['-d', rviz_config_path],
-        condition=IfCondition(use_rviz)
     )
 
     return LaunchDescription([

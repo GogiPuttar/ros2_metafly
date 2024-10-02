@@ -11,6 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', ['launch/high_level.launch.py']),
+        ('share/' + package_name + '/config', ['config/basic.rviz']),
     ],
     install_requires=['setuptools', 'rclpy', 'metafly_interfaces'],
     zip_safe=True,
