@@ -32,7 +32,7 @@ class HighLevelBasic(Node):
     def pose_callback(self, msg):
         # Store the current pose
         self.current_pose = msg
-        self.get_logger().info(f"Received Pose: {msg.pose}")
+        self.get_logger().debug(f"Received Pose: {msg.pose}")
 
     def timer_callback(self):
 
@@ -53,7 +53,7 @@ class HighLevelBasic(Node):
 
             # Publish the zero Controls command
             self.cmd_controls_publisher.publish(controls_msg)
-            self.get_logger().info("Publishing zero Controls command")
+            self.get_logger().debug("Publishing zero Controls command")
         else:
             self.get_logger().warn("No pose received yet, not publishing.")
 

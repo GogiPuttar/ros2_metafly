@@ -137,7 +137,7 @@ class UdpListener(Node):
         except socket.timeout:
             self.get_logger().warn('No data received, retrying...')
         except Exception as e:
-            self.get_logger().error(f"Error receiving data: {str(e)}")
+            self.get_logger().debug(f"Error receiving data: {str(e)}")
 
 
 def main(args=None):

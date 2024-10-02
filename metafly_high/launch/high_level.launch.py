@@ -16,7 +16,7 @@ def generate_launch_description():
     ps3_override = LaunchConfiguration('ps3_override', default='false')
 
     # Declare the use_rviz argument
-    use_rviz = LaunchConfiguration('use_rviz', default='false')
+    use_rviz = LaunchConfiguration('use_rviz', default='true')
 
     # Declare bird_name argument
     bird_name = LaunchConfiguration('bird_name', default='charlie_1')
@@ -41,7 +41,7 @@ def generate_launch_description():
     listener_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(listener_launch_path),
         launch_arguments={
-            'use_rviz': use_rviz,
+            'use_rviz': 'false',
             'ps3_override': ps3_override,
             'bird_name': bird_name
         }.items()
