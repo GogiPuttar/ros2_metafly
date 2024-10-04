@@ -36,7 +36,7 @@ class HighLevelBasic(Node):
         self.current_pose = None
         self.previous_pose = None
         self.pose_identical_time = None
-        self.max_identical_duration = 1.0  # seconds
+        self.max_identical_duration = 0.5  # seconds
 
         # Declare constants used in operation
         self.max_feedback_latency = 1.0     # seconds
