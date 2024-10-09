@@ -47,8 +47,8 @@ class UdpListener(Node):
         self.udp_socket.setblocking(False)
         self.udp_socket.bind(("0.0.0.0", 54321))
 
-        # Set a timer to check for new messages and broadcast at 30Hz
-        self.create_timer(1/30.0, self.timer_callback)
+        # Set a timer to check for new messages and broadcast at 100Hz
+        self.create_timer(1/100.0, self.timer_callback)
 
     def load_yaml(self, file_path):
         with open(file_path, 'r') as f:
