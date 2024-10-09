@@ -16,7 +16,7 @@ def generate_launch_description():
     ps3_override = LaunchConfiguration('ps3_override', default='true')
 
     # Declare bird_name argument
-    bird_name = LaunchConfiguration('bird_name', default='charlie_1')
+    bird_name = LaunchConfiguration('bird_name', default='charlie_2')
     
     # Path to the RViz config file
     rviz_config_path = os.path.join(

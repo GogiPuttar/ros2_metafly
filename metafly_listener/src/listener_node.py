@@ -18,7 +18,7 @@ class UdpListener(Node):
         super().__init__('udp_listener')
 
         # Declare a parameter for the bird's name
-        self.declare_parameter('bird_name', 'charlie_1')
+        self.declare_parameter('bird_name', 'charlie_2')
 
         # Load the pose offsets from YAML
         package_share_directory = get_package_share_directory('metafly_listener')

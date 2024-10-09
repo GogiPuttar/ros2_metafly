@@ -12,6 +12,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', ['launch/high_level.launch.py']),
         ('share/' + package_name + '/config', ['config/basic.rviz']),
+        ('share/' + package_name + '/config', ['config/PID.rviz']),
     ],
     install_requires=['setuptools', 'rclpy', 'metafly_interfaces'],
     zip_safe=True,
@@ -23,6 +24,8 @@ setup(
     entry_points={
         'console_scripts': [
             'high_level_basic = metafly_high.high_level_basic:main',
+            'high_level_PID = metafly_high.high_level_PID:main',
+            'logger = metafly_high.logger:main',
         ],
     },
 )

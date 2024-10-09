@@ -11,3 +11,14 @@ charlie_1:
     y: 0.209
     z: -0.532
     w: 0.689
+
+charlie_2:
+  position:
+    x: 0.0
+    y: 0.0
+    z: 0.09
+  orientation:
+    x: 0.03
+    y: 0.01
+    z: 0.04
+    w: 0.999
