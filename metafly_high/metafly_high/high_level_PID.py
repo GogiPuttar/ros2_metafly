@@ -44,9 +44,12 @@ class HighLevelPID(Node):
 
         # Declare constants used in operation
         self.max_feedback_latency = 1.0     # seconds
-        self.x_constraints = [-3.0, 1.3]    # [m, m]
-        self.y_constraints = [-1.1, 1.7]    # [m, m]
-        self.z_constraints = [0.05, 2.0]    # [m, m]
+        # self.x_constraints = [-3.0, 1.3]    # [m, m]
+        # self.y_constraints = [-1.1, 1.7]    # [m, m]
+        # self.z_constraints = [0.05, 2.0]    # [m, m]
+        self.x_constraints = [-5.0, 3.0]    # [m, m]
+        self.y_constraints = [-2.0, 2.5]    # [m, m]
+        self.z_constraints = [-0.5, 4.0]    # [m, m]
         self.baseline_speed = 0             # [0, 127]
         self.baseline_steering = 0          # [-127, 127]
         self.tracking_state = "untracked"   # "untracked", "out_of_bounds", or "ok"
@@ -120,7 +123,9 @@ class HighLevelPID(Node):
             self.tracking_state = "ok"
 
             # Publish the controls command
-            self.control_level_and_direction()
+            # self.control_level_and_direction()
+            self.control_level_while_turning()
+
             self.publish_target_marker()
         else:
             self.get_logger().warn("No pose received yet, not publishing.")
@@ -147,38 +152,6 @@ class HighLevelPID(Node):
         controls_msg.steering = 0  # Zero steering
         self.cmd_controls_publisher.publish(controls_msg)
         self.get_logger().debug("Publishing zero Controls command")
-
-    # def control_z_level(self):
-    #     current_z = self.current_pose.pose.position.z
-    #     error = self.target_z - current_z
-
-    #     # Proportional term
-    #     p_term = self.kp * error
-
-    #     # Integral term
-    #     self.integral += error
-    #     i_term = self.ki * self.integral
-
-    #     # Derivative term
-    #     d_term = 0.0
-    #     if self.previous_error is not None:
-    #         d_term = self.kd * (error - self.previous_error)
-
-    #     # PID output
-    #     pid_output = p_term + i_term + d_term
-
-    #     # Limit the output to the range [-127, 127]
-    #     speed_command = max(self.min_speed, min(self.max_speed, int(pid_output + self.gravcomp_speed)))
-
-    #     # Check if the bird is in the desirable range of the target
-    #     if abs(error) < self.desirable_range:
-    #         self.leveling_state = True
-    #     else:
-    #         self.leveling_state = False
-
-    #     self.get_logger().info(f"heyy: {pid_output + self.gravcomp_speed}")
-
-    #     self.publish_controls(speed_command, 0)
 
     def control_level_and_direction(self):
 
@@ -218,6 +191,62 @@ class HighLevelPID(Node):
         # Limit the output to the range [-127, 127]
         speed_command = max(self.min_speed, min(self.max_speed, int(pid_output_z + self.gravcomp_speed)))
         steering_command = max(self.min_steering, min(self.max_steering, -int(pid_output_yaw)))
+
+        # Check if the bird is in the desirable range of the target
+        if abs(error_z) < self.desirable_range_z:
+            self.leveling_state = True
+        else:
+            self.leveling_state = False
+        if abs(error_yaw) < self.desirable_range_yaw:
+            self.directing_state_state = True
+        else:
+            self.directing_state = False
+
+        self.get_logger().info(f"heyy: {speed_command}")
+
+        self.publish_controls(speed_command, steering_command)
+
+    def control_level_while_turning(self):
+
+        current_z = self.current_pose.pose.position.z
+        _, _, current_yaw = tf_transformations.euler_from_quaternion([
+            self.current_pose.pose.orientation.x,
+            self.current_pose.pose.orientation.y,
+            self.current_pose.pose.orientation.z,
+            self.current_pose.pose.orientation.w
+        ])
+
+        error_z = self.target_z - current_z
+        error_yaw = self.target_yaw - current_yaw
+
+        # Proportional term
+        p_term_z = self.kp_z * error_z
+        p_term_yaw = self.kp_yaw * error_yaw
+
+        # Integral term
+        self.integral_z += error_z
+        i_term_z = self.ki_z * self.integral_z
+        self.integral_yaw += error_yaw
+        i_term_yaw = self.ki_yaw * self.integral_yaw
+
+        # Derivative term
+        d_term_z = 0.0
+        if self.previous_error_z is not None:
+            d_term_z = self.kd_z * (error_z - self.previous_error_z)
+        d_term_yaw = 0.0
+        if self.previous_error_yaw is not None:
+            d_term_yaw = self.kd_yaw * (error_yaw - self.previous_error_yaw)
+
+        # PID output
+        pid_output_z = p_term_z + i_term_z + d_term_z
+        pid_output_yaw = p_term_yaw + i_term_yaw + d_term_yaw
+
+        # Limit the output to the range [-127, 127]
+        # speed_command = max(self.min_speed, min(self.max_speed, int(pid_output_z + self.gravcomp_speed)))
+        speed_command = self.max_speed
+        # steering_command = max(self.min_steering, min(self.max_steering, -int(pid_output_yaw)))
+        steering_command = self.min_steering
+        # steering_command = 0
 
         # Check if the bird is in the desirable range of the target
         if abs(error_z) < self.desirable_range_z:

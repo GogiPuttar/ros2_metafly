@@ -4,7 +4,7 @@ import numpy as np
 import tf_transformations  # For quaternion to Euler conversion
 
 # Load the pickle file
-filename = 'sessions/session_4/run_1.pkl'
+filename = 'sessions/session_9/run_1.pkl'
 with open(filename, 'rb') as file:
     data = pickle.load(file)
 
