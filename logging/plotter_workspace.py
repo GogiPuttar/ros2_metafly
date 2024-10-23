@@ -6,7 +6,7 @@ from alphashape import alphashape
 import trimesh
 
 # Load the pickle file
-filename = 'sessions/session_11/run_1.pkl'
+filename = 'sessions/session_14/run_1.pkl'
 with open(filename, 'rb') as file:
     data = pickle.load(file)
 
@@ -15,8 +15,14 @@ with open(filename, 'rb') as file:
 # y_constraints = [-1.1, 1.7]  # [m, m]
 # z_constraints = [0.0, 2.0]   # [m, m]
 
-x_constraints = [-5.2, 2.1]  # [m, m]
-y_constraints = [-1.8, 2.3]  # [m, m]
+# Old
+# x_constraints = [-5.2, 2.1]  # [m, m]
+# y_constraints = [-1.8, 2.3]  # [m, m]
+# z_constraints = [0.0, 2.7]   # [m, m]
+    
+# Post callibration on Oct 15
+x_constraints = [-3.7, 3.7]  # [m, m]
+y_constraints = [-2.5, 1.7]  # [m, m]
 z_constraints = [0.0, 2.7]   # [m, m]
 
 # Extract data
@@ -80,5 +86,5 @@ plt.show()
 Notes about runs/sessions:
 Session Run Info
 11      1   Scan of workspace. Less focus on the floor
-
+14      1   Scan of workspace after callibration on Oct 15
 """

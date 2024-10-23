@@ -19,7 +19,7 @@ def generate_launch_description():
     use_high_rviz = LaunchConfiguration('use_high_rviz', default='true')
 
     # Declare bird_name argument
-    bird_name = LaunchConfiguration('bird_name', default='charlie_2')
+    bird_name = LaunchConfiguration('bird_name', default='charlie_3')
     
     # Paths to the RViz config file
     rviz_basic_config_path = os.path.join(

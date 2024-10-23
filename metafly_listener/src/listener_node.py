@@ -18,7 +18,7 @@ class UdpListener(Node):
         super().__init__('udp_listener')
 
         # Declare a parameter for the bird's name
-        self.declare_parameter('bird_name', 'charlie_2')
+        self.declare_parameter('bird_name', 'charlie_3')
 
         # Load the pose offsets from YAML
         package_share_directory = get_package_share_directory('metafly_listener')
@@ -90,10 +90,11 @@ class UdpListener(Node):
             x, y, z = float(message_parts[1]), float(message_parts[2]), float(message_parts[3])
             qx, qy, qz, qw = float(message_parts[4]), float(message_parts[5]), float(message_parts[6]), float(message_parts[7])
 
-            # Apply the inverted offset to the received pose
-            received_position = {'x': x, 'y': y, 'z': z}
+            # Manually rearrange these values to account for a disccrepancy between ground plane orientation (OptiTrack) and world frame orientation
+            received_position = {'x': -y, 'y': x, 'z': z}
             received_orientation = {'x': qx, 'y': qy, 'z': qz, 'w': qw}
 
+            # Apply the inverted offset to the received pose
             offset_position = self.offset['position']
             offset_orientation = self.offset['orientation']
             inverted_offset_position, inverted_offset_orientation = self.invert_offset(offset_position, offset_orientation)
