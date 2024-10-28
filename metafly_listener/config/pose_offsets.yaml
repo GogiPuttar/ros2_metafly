@@ -31,5 +31,15 @@ charlie_3:
   orientation:
     x: 0.0
     y: 0.0
-    z: 0.0
-    w: 0.999
+    z: -0.7071068
+    w: 0.7071068
+  # orientation:
+  #   x: -0.5
+  #   y: 0.5
+  #   z: -0.5
+  #   w: 0.5
+  # orientation:
+  #   x: 0.0
+  #   y: 0.0
+  #   z: 0.0
+  #   w: 1.0

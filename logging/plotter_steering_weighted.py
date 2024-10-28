@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares
 from collections import defaultdict
+import tf_transformations
 
 # Define the bad runs for each session
 bad_runs = {
@@ -33,9 +34,9 @@ bad_runs = {
 valid_sessions = [
     'session_16', 'session_17', 'session_18', 'session_19', 'session_20', 
     'session_23', 'session_24', 'session_25', 'session_27', 'session_28',
-    'session_30', 'session_31', 'session_33', 'session_36', 'session_38', 
-    'session_39', 'session_40', 'session_41', 'session_44', 'session_45', 
-    'session_48', 'session_49', 'session_50'
+    # 'session_30', 'session_31', 'session_33', 'session_36', 'session_38', 
+    # 'session_39', 'session_40', 'session_41', 'session_44', 'session_45', 
+    # 'session_48', 'session_49', 'session_50'
 ]
 
 # Function to fit a circle to the XY trajectory and return the subtended angle
@@ -68,6 +69,17 @@ def calculate_pitch(z, radii):
     pitch = total_z_change / num_rotations
     return pitch
 
+# Function to calculate the average roll only when both controls are non-zero
+def calculate_filtered_average_roll(pose_data, controls_data):
+    roll_angles = []
+    for pose, control in zip(pose_data, controls_data):
+        if control.speed != 0 and control.steering != 0:  # Check both controls
+            orientation = [pose.pose.orientation.x, pose.pose.orientation.y,
+                           pose.pose.orientation.z, pose.pose.orientation.w]
+            roll, _, _ = tf_transformations.euler_from_quaternion(orientation)
+            roll_angles.append(roll)
+    return np.mean(roll_angles) if roll_angles else np.nan  # Return NaN if no valid points
+
 # Directory containing all sessions and runs
 data_dir = 'sessions'
 
@@ -76,6 +88,7 @@ turning_radii = []
 pitches = []
 steering_commands = []
 weights = []
+average_rolls = []
 
 # Loop through each session and each run
 for session in os.listdir(data_dir):
@@ -127,23 +140,29 @@ for session in os.listdir(data_dir):
         # Calculate the pitch of the screw motion
         pitch = calculate_pitch(z_filtered, np.sqrt((x_filtered - np.mean(x_filtered)) ** 2 + 
                                                     (y_filtered - np.mean(y_filtered)) ** 2))
+        
+        # Calculate average roll with filtered control data
+        avg_roll = calculate_filtered_average_roll(pose_data, controls_data)
 
         # Append the results to the lists
         turning_radii.append(turning_radius)
         pitches.append(pitch)
         steering_commands.append(steering_command)
-        weights.append(subtended_angle)  # Use subtended angle as the weight
+        weights.append(subtended_angle)
+        average_rolls.append(avg_roll)
 
 # Convert lists to numpy arrays for plotting
 turning_radii = np.array(turning_radii)
 pitches = np.array(pitches)
 steering_commands = np.array(steering_commands)
 weights = np.array(weights)
+average_rolls = np.array(average_rolls)
 
 # Group data by unique steering commands
 grouped_turning_radii = defaultdict(list)
 grouped_pitches = defaultdict(list)
 grouped_weights = defaultdict(list)
+grouped_rolls = defaultdict(list)
 unique_steering_commands = np.unique(steering_commands)
 
 # Group the data for each unique steering command
@@ -151,6 +170,7 @@ for i, steering_command in enumerate(steering_commands):
     grouped_turning_radii[steering_command].append(turning_radii[i])
     grouped_pitches[steering_command].append(pitches[i])
     grouped_weights[steering_command].append(weights[i])
+    grouped_rolls[steering_command].append(average_rolls[i])
 
 # Plot 1/turning radius vs steering command
 plt.figure()
@@ -195,6 +215,28 @@ plt.axhline(0, color='black', linestyle='--', linewidth=1.5)
 plt.xlabel('Steering Command')
 plt.ylabel('Pitch (m/rotation)')
 plt.title('Pitch vs Steering Command')
+plt.grid(True)
+
+# Plot average roll vs 1/turning radius
+plt.figure()
+plt.scatter(1 / turning_radii, average_rolls, color='purple', alpha=0.6)
+plt.xlabel('1/Turning Radius (1/m)')
+plt.ylabel('Average Roll (radians)')
+plt.title('Average Roll vs 1/Turning Radius')
+plt.grid(True)
+
+# Plot average roll vs steering command
+plt.figure()
+for steering_command in unique_steering_commands:
+    roll_values = np.array(grouped_rolls[steering_command])
+    plt.scatter([steering_command] * len(roll_values), roll_values, alpha=0.6, color='purple')
+
+    mean_roll = np.mean(roll_values)
+    plt.scatter(steering_command, mean_roll, color='yellow', marker='D')
+
+plt.xlabel('Steering Command')
+plt.ylabel('Average Roll (radians)')
+plt.title('Average Roll vs Steering Command')
 plt.grid(True)
 
 plt.show()

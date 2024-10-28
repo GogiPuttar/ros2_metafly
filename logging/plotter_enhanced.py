@@ -5,14 +5,18 @@ import tf_transformations  # For quaternion to Euler conversion
 from mpl_toolkits.mplot3d import Axes3D  # For 3D plotting
 
 # Load the pickle file
-filename = 'sessions/session_6/run_1.pkl'
+filename = 'sessions/session_55/run_1.pkl'
 with open(filename, 'rb') as file:
     data = pickle.load(file)
 
 # Constraints for plotting
-x_constraints = [-3.0, 1.3]  # [m, m]
-y_constraints = [-1.1, 1.7]  # [m, m]
-z_constraints = [0.0, 2.0]   # [m, m]
+# x_constraints = [-3.0, 1.3]  # [m, m]
+# y_constraints = [-1.1, 1.7]  # [m, m]
+# z_constraints = [0.0, 2.0]   # [m, m]
+# Constraints for uniform scaling
+x_constraints = [-3.7, 3.7]  # [m, m]
+y_constraints = [-2.5, 1.7]  # [m, m]
+z_constraints = [0.0, 2.7]   # [m, m]
 
 # Extract data
 pose_data = data['pose']
@@ -44,7 +48,8 @@ steering = np.array([controls.steering for controls in controls_data])
 # 3D plot: Bird's trajectory in XYZ with color-coding
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-colors = ['red' if (s != 0 and st != 0) else 'blue' for s, st in zip(speed, steering)]
+# colors = ['red' if (s == 0 and st == 0) else 'blue' for s, st in zip(speed, steering)]
+colors = ['red' if (st == 0) else 'blue' for s, st in zip(speed, steering)]
 
 for i in range(1, len(x)):
     ax.plot(x[i-1:i+1], y[i-1:i+1], z[i-1:i+1], color=colors[i-1])

@@ -38,7 +38,7 @@ def create_cylinder(xc, yc, radius, pitch, height, num_points=100):
     return X, Y, Z
 
 # Load the pickle file
-filename = 'sessions/session_23/run_8.pkl'
+filename = 'sessions/session_53/run_1.pkl'
 with open(filename, 'rb') as file:
     data = pickle.load(file)
 
@@ -81,7 +81,7 @@ ax.plot(x_filtered, y_filtered, z_filtered, label='Flight Path', color='blue')
 
 # Plot the cylinder (screw motion), green if pitch is positive, red if pitch is negative
 cylinder_color = 'green' if pitch >= 0 else 'red'
-ax.plot_surface(X, Y, Z, color=cylinder_color, alpha=0.5)
+# ax.plot_surface(X, Y, Z, color=cylinder_color, alpha=0.5)
 
 # Set axis labels and title
 ax.set_xlabel('X Position (m)')
@@ -106,3 +106,10 @@ ax.text2D(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=10,
 
 plt.legend()
 plt.show()
+
+"""
+Notes about runs/sessions:
+Session Run Info
+23      8   Multiple circles. Open loop input
+52      2   electron caught in uniform magnetic field
+"""
