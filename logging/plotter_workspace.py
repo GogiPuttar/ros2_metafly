@@ -6,7 +6,7 @@ from alphashape import alphashape
 import trimesh
 
 # Load the pickle file
-filename = 'sessions/session_14/run_1.pkl'
+filename = 'sessions/session_66/run_1.pkl'
 with open(filename, 'rb') as file:
     data = pickle.load(file)
 
@@ -87,4 +87,5 @@ Notes about runs/sessions:
 Session Run Info
 11      1   Scan of workspace. Less focus on the floor
 14      1   Scan of workspace after callibration on Oct 15
+66      1   Scan of workspace after adding 6 cameras + "poor" callibration on Nov 3
 """

@@ -58,6 +58,10 @@ class HighLevelPID(Node):
         self.baseline_steering = 0          # [-127, 127]
         self.tracking_state = "untracked"   # "untracked", "out_of_bounds", or "ok"
 
+        self.x_constraints = [-5.0, 5.0]  # [m, m]
+        self.y_constraints = [-3.0, 2.0]  # [m, m]
+        self.z_constraints = [0.0, 4.0]   # [m, m]
+
         # Variables for PID control
 
         # For level
@@ -196,6 +200,8 @@ class HighLevelPID(Node):
         # Limit the output to the range [-127, 127]
         speed_command = max(self.min_speed, min(self.max_speed, int(pid_output_z + self.gravcomp_speed)))
         steering_command = max(self.min_steering, min(self.max_steering, -int(pid_output_yaw)))
+
+        speed_command = self.max_speed
 
         # Check if the bird is in the desirable range of the target
         if abs(error_z) < self.desirable_range_z:

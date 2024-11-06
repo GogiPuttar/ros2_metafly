@@ -38,7 +38,7 @@ def create_cylinder(xc, yc, radius, pitch, height, num_points=100):
     return X, Y, Z
 
 # Load the pickle file
-filename = 'sessions/session_53/run_1.pkl'
+filename = 'sessions/session_67/run_7.pkl'
 with open(filename, 'rb') as file:
     data = pickle.load(file)
 
@@ -112,4 +112,5 @@ Notes about runs/sessions:
 Session Run Info
 23      8   Multiple circles. Open loop input
 52      2   electron caught in uniform magnetic field
+67      5,6,7 Beautiful circular trajectory with drift, roll-control
 """

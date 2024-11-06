@@ -34,9 +34,9 @@ bad_runs = {
 valid_sessions = [
     'session_16', 'session_17', 'session_18', 'session_19', 'session_20', 
     'session_23', 'session_24', 'session_25', 'session_27', 'session_28',
-    # 'session_30', 'session_31', 'session_33', 'session_36', 'session_38', 
-    # 'session_39', 'session_40', 'session_41', 'session_44', 'session_45', 
-    # 'session_48', 'session_49', 'session_50'
+    'session_30', 'session_31', 'session_33', 'session_36', 'session_38', 
+    'session_39', 'session_40', 'session_41', 'session_44', 'session_45', 
+    'session_48', 'session_49', 'session_50'
 ]
 
 # Function to fit a circle to the XY trajectory and return the subtended angle
@@ -76,7 +76,7 @@ def calculate_filtered_average_roll(pose_data, controls_data):
         if control.speed != 0 and control.steering != 0:  # Check both controls
             orientation = [pose.pose.orientation.x, pose.pose.orientation.y,
                            pose.pose.orientation.z, pose.pose.orientation.w]
-            roll, _, _ = tf_transformations.euler_from_quaternion(orientation)
+            _, roll, _ = tf_transformations.euler_from_quaternion(orientation)
             roll_angles.append(roll)
     return np.mean(roll_angles) if roll_angles else np.nan  # Return NaN if no valid points
 

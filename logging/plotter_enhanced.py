@@ -5,7 +5,7 @@ import tf_transformations  # For quaternion to Euler conversion
 from mpl_toolkits.mplot3d import Axes3D  # For 3D plotting
 
 # Load the pickle file
-filename = 'sessions/session_55/run_1.pkl'
+filename = 'sessions/session_63/run_24.pkl'
 with open(filename, 'rb') as file:
     data = pickle.load(file)
 

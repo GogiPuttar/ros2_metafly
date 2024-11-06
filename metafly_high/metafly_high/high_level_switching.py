@@ -8,6 +8,7 @@ from metafly_interfaces.msg import Controls  # Import the Controls message
 from std_msgs.msg import ColorRGBA  # For defining the marker color
 import tf_transformations
 import numpy as np
+import time
 
 class HighLevelSwitching(Node):
     def __init__(self):
@@ -89,8 +90,17 @@ class HighLevelSwitching(Node):
         self.desirable_range_yaw = 0.2  # Desirable range around the target yaw
         self.directing_state = False
 
-        self.target_roll = 0.0
+        self.target_roll = 0.4
 
+        # Initialize state and timers for open-loop control
+        self.open_loop_started = False  # Flag to check if open loop is active
+        self.start_time = None          # Start time for open-loop control
+        self.phase_duration = {         # Define fixed durations for each turn phase
+            'left': 1.2,     # Turn left for 2 seconds
+            'right': 2.0,    # Turn right for 2 seconds
+            'turnaround': 3.0  # Turn around for 3 seconds
+        }
+        self.current_phase = None
 
     def pose_callback(self, msg):
 
@@ -130,14 +140,35 @@ class HighLevelSwitching(Node):
             
             self.tracking_state = "ok"
 
+            # STANDARD CLOSED LOOP CONTROL
+
             # Publish the controls command
             # self.simple_switching()
-            self.loop()
+            # self.loop()
+            self.maintain_roll()
 
+            # OPEN LOOP CONTROL
+
+            # # Use open loop control if bird crosses x = 0 into positive x territory
+            # if not self.open_loop_started and self.current_pose.pose.position.x > 0.0:
+            #     self.start_open_loop_control()
+
+            # # Reset open loop if bird crosses back to x < 0
+            # elif self.open_loop_started and self.current_pose.pose.position.x < 0.0:
+            #     self.reset_open_loop_control()
+
+            # # Execute open loop control if it's started
+            # if self.open_loop_started:
+            #     self.execute_open_loop_control()
+            # else:
+            #     self.publish_controls(127, 0)  
+
+            # Publish target marker
             self.publish_target_marker()
         else:
-            # self.get_logger().warn("No pose received yet, not publishing.")
-            self.get_logger().debug("No pose received yet, not publishing.")
+            self.get_logger().warn("No pose received yet, not publishing.")
+            # self.get_logger().debug("No pose received yet, not publishing.")
+
 
     def is_pose_identical(self, pose1, pose2):
         # Check if the positions of two poses are identical
@@ -162,7 +193,118 @@ class HighLevelSwitching(Node):
         self.cmd_controls_publisher.publish(controls_msg)
         self.get_logger().debug("Publishing zero Controls command")
 
+    def start_open_loop_control(self):
+        """Initiates the open-loop control sequence as soon as x crosses from negative to positive."""
+        self.open_loop_started = True
+        self.start_time = time.time()
+        self.current_phase = 'left'
+        self.get_logger().info("Open-loop control started: Turning left.")
+
+    def reset_open_loop_control(self):
+        """Resets open-loop control when the bird's x crosses back into negative territory."""
+        self.open_loop_started = False
+        self.start_time = None
+        self.current_phase = None
+        self.publish_zero_controls()  # Stop commands on reset
+        self.get_logger().info("Open-loop control reset: Bird crossed back to x < 0.")
+
+    def execute_open_loop_control(self):
+        """Executes each phase of the open-loop control based on time intervals."""
+        elapsed_time = time.time() - self.start_time
+
+        # Left turn phase
+        if self.current_phase == 'left':
+            if elapsed_time < self.phase_duration['left']:
+                self.publish_controls(speed=self.max_speed, steering=-127)  # Full left turn
+            else:
+                # Move to right turn phase
+                self.start_time = time.time()  # Reset timer for next phase
+                self.current_phase = 'right'
+                self.get_logger().info("Switching to right turn.")
+
+        # Right turn phase
+        elif self.current_phase == 'right':
+            if elapsed_time < self.phase_duration['right']:
+                self.publish_controls(speed=self.max_speed, steering=127)  # Full right turn
+            else:
+                # Move to turnaround phase
+                self.start_time = time.time()
+                self.current_phase = 'turnaround'
+                self.get_logger().info("Switching to turnaround phase.")
+
+        # Turnaround phase
+        elif self.current_phase == 'turnaround':
+            if elapsed_time < self.phase_duration['turnaround']:
+                self.publish_controls(speed=self.max_speed, steering=127)  # Full turnaround
+            else:
+                # Go back to left turn phase
+                self.start_time = time.time()
+                self.current_phase = 'left'
+                self.get_logger().info("Looping back to left turn.")
+
     def loop(self):
+
+        current_x = self.current_pose.pose.position.x
+        current_y = self.current_pose.pose.position.y
+        current_z = self.current_pose.pose.position.z
+        current_roll, current_pitch, current_yaw = tf_transformations.euler_from_quaternion([
+            self.current_pose.pose.orientation.x,
+            self.current_pose.pose.orientation.y,
+            self.current_pose.pose.orientation.z,
+            self.current_pose.pose.orientation.w
+        ])
+
+        x_thresh = 0.2
+        yaw_thresh_0 = [-np.pi/2, np.pi/4]
+        yaw_thresh_right = [np.pi/12, np.pi/2]
+
+        error_z = self.target_z - current_z
+        error_yaw = self.target_yaw - current_yaw
+        error_roll = self.target_roll - current_roll
+
+        # Limit the output to the range [-127, 127]
+        speed_command = self.max_speed
+
+        if current_x > x_thresh:
+
+            if (yaw_thresh_0[0] < current_yaw < yaw_thresh_0[1]):
+
+                steering_command = -127
+
+            elif error_roll > 0.4:
+
+                steering_command = 127
+
+            else:
+
+                steering_command = 0
+
+        else:
+            steering_command = 0
+
+        # if ((current_x > x_thresh) and (yaw_thresh_0[0] < current_yaw < yaw_thresh_0[1]))  :
+        #     steering_command = -127
+        # elif (yaw_thresh_right[0] < current_yaw < yaw_thresh_right[1]):
+        #     steering_command = 127
+        # else:
+        #     steering_command = 0
+
+        # Check if the bird is in the desirable range of the target
+        if abs(error_z) < self.desirable_range_z:
+            self.leveling_state = True
+        else:
+            self.leveling_state = False
+        if abs(error_yaw) < self.desirable_range_yaw:
+            self.directing_state_state = True
+        else:
+            self.directing_state = False
+
+        if error_roll > 0.3:
+            self.get_logger().info(f"heyy: {error_roll}")
+
+        self.publish_controls(speed_command, steering_command)
+
+    def maintain_roll(self):
 
         current_x = self.current_pose.pose.position.x
         current_y = self.current_pose.pose.position.y
@@ -185,12 +327,9 @@ class HighLevelSwitching(Node):
         # Limit the output to the range [-127, 127]
         speed_command = self.max_speed
 
-        if ((current_x > x_thresh) and (yaw_thresh_0[0] < current_yaw < yaw_thresh_0[1]))  :
-            steering_command = -127
-        elif (yaw_thresh_right[0] < current_yaw < yaw_thresh_right[1]):
-            steering_command = 127
-        else:
-            steering_command = 0
+        roll_kp = 81
+        # roll_kp = 200
+        steering_command = int(min(max(self.min_steering, roll_kp * error_roll), self.max_steering))
 
         # Check if the bird is in the desirable range of the target
         if abs(error_z) < self.desirable_range_z:
@@ -202,7 +341,8 @@ class HighLevelSwitching(Node):
         else:
             self.directing_state = False
 
-        self.get_logger().info(f"heyy: {error_roll}")
+        # self.get_logger().info(f"heyy: {error_roll}")
+        self.get_logger().info(f"heyy: {steering_command}")
 
         self.publish_controls(speed_command, steering_command)
 
