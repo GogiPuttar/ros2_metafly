@@ -1,0 +1,5 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "Metafly_remote")(type "KiCad")(uri "${KIPRJMOD}/Metafly_remote.kicad_sym")(options "")(descr ""))
+  (lib (name "metafly_remote")(type "KiCad")(uri "${KIPRJMOD}/metafly_remote.kicad_sym")(options "")(descr ""))
+)

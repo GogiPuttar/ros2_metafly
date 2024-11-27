@@ -11,6 +11,7 @@ Panels:
         - /Marker3
         - /Marker4
         - /Marker5
+        - /Marker6
       Splitter Ratio: 0.5
     Tree Height: 719
   - Class: rviz_common/Selection
@@ -137,6 +138,32 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /control_vector_marker
       Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        ellipse: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /ellipse_marker
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        return_tangent: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /return_tangent_marker
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -201,7 +228,7 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: -1.5707963705062866
+      Yaw: 4.71238899230957
     Saved:
       - Class: rviz_default_plugins/Orbit
         Distance: 6.949574947357178
