@@ -10,10 +10,10 @@ import tf_transformations
 import numpy as np
 from scipy.optimize import least_squares
 
-class HighLevelGeometric(Node):
+class HighLevelReturning(Node):
     def __init__(self):
-        super().__init__('high_level_geometric')
-        self.get_logger().info('High-level geometric node initialized')
+        super().__init__('high_level_returning')
+        self.get_logger().info('High-level returning node initialized')
 
         # Subscriber to the Pose data
         self.pose_subscriber = self.create_subscription(
@@ -729,7 +729,7 @@ class HighLevelGeometric(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = HighLevelGeometric()
+    node = HighLevelReturning()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
