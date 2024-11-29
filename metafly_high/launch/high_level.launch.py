@@ -28,6 +28,8 @@ def generate_launch_description():
         get_package_share_directory('metafly_high'), 'config', 'PID.rviz')
     rviz_switching_config_path = os.path.join(
         get_package_share_directory('metafly_high'), 'config', 'switching.rviz')
+    rviz_geometric_config_path = os.path.join(
+        get_package_share_directory('metafly_high'), 'config', 'geometric.rviz')
     rviz_returning_config_path = os.path.join(
         get_package_share_directory('metafly_high'), 'config', 'returning.rviz')
 
@@ -59,6 +61,15 @@ def generate_launch_description():
         name='high_level_switching',
         output='screen',
         condition=IfCondition(EqualsSubstitution(policy, 'switching'))
+    )
+
+    # Conditionally launch the high_level_geometric node if policy is set to "geometric"
+    high_level_geometric_node = Node(
+        package='metafly_high',
+        executable='high_level_geometric',
+        name='high_level_geometric',
+        output='screen',
+        condition=IfCondition(EqualsSubstitution(policy, 'geoemtric'))
     )
 
     # Conditionally launch the high_level_returning node if policy is set to "returning"
@@ -106,6 +117,18 @@ def generate_launch_description():
         ]))
     )
 
+    # RViz node with geometric config (conditionally launched if use_high_rviz is true and policy is geometric)
+    rviz_geometric_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen',
+        arguments=['-d', rviz_geometric_config_path],
+        condition=IfCondition(PythonExpression([
+            '"geometric" == "', policy, '" and "true" == "', use_high_rviz, '"'
+        ]))
+    )
+
     # RViz node with returning config (conditionally launched if use_high_rviz is true and policy is returning)
     rviz_returning_node = Node(
         package='rviz2',
@@ -133,9 +156,11 @@ def generate_launch_description():
         high_level_basic_node,
         high_level_PID_node,
         high_level_switching_node,
+        high_level_geometric_node,
         high_level_returning_node,
         rviz_basic_node,
         rviz_PID_node,
         rviz_switching_node,
+        rviz_geometric_node,
         rviz_returning_node,
     ])
