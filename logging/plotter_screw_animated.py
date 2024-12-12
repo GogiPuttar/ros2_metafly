@@ -1,3 +1,6 @@
+# In the following script I want you to:
+# Make an html tag for an interactive 3d animated video
+
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,7 +33,7 @@ def calculate_pitch(z, radii):
     return pitch
 
 # Load the pickle file
-filename = 'sessions/session_67/run_6.pkl'
+filename = 'sessions/session_73/run_1.pkl'
 with open(filename, 'rb') as file:
     data = pickle.load(file)
 
@@ -64,6 +67,9 @@ z_constraints = [0.0, 2.7]   # [m, m]
 # Create figure and axes
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
+
+plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
 ax.set_xlim(x_constraints[0], x_constraints[1])
 ax.set_ylim(y_constraints[0], y_constraints[1])
 ax.set_zlim(z_constraints[0], z_constraints[1])
@@ -132,8 +138,8 @@ def update(frame):
         center_point.set_3d_properties([0])  # Project on the XY plane at z = 0
 
         # Update the vector line from target to the current center
-        vector_line.set_data([target_x, xc], [target_y, yc])
-        vector_line.set_3d_properties([0, 0])  # Keep vector in XY plane
+        # vector_line.set_data([target_x, xc], [target_y, yc])
+        # vector_line.set_3d_properties([0, 0])  # Keep vector in XY plane
 
         # Calculate the new vector's orientation and length
         dx = xc - current_x
@@ -152,50 +158,85 @@ def update(frame):
         end_x = xc + length * unit_dx
         end_y = yc + length * unit_dy
 
-        # Determine arrow color based on length
-        arrow_color = 'orange' if length > 0 else 'purple'
+        # # Determine arrow color based on length
+        # arrow_color = 'orange' if length > 0 else 'purple'
 
-        # Update the additional vector line starting from (xc, yc)
-        additional_vector.set_data([xc, end_x], [yc, end_y])
-        additional_vector.set_3d_properties([0, 0])  # Keep it in the XY plane
-        additional_vector.set_color(arrow_color)
+        # # Update the additional vector line starting from (xc, yc)
+        # additional_vector.set_data([xc, end_x], [yc, end_y])
+        # additional_vector.set_3d_properties([0, 0])  # Keep it in the XY plane
+        # additional_vector.set_color(arrow_color)
 
-        # Calculate and plot the arrowhead
-        arrowhead_length = 0.1 * length  # Adjust the size of the arrowhead as needed
-        angle_offset = np.pi / 8  # Angle for arrowhead rotation
-        cos_angle, sin_angle = np.cos(angle_offset), np.sin(angle_offset)
+        # # Calculate and plot the arrowhead
+        # arrowhead_length = 0.1 * length  # Adjust the size of the arrowhead as needed
+        # angle_offset = np.pi / 8  # Angle for arrowhead rotation
+        # cos_angle, sin_angle = np.cos(angle_offset), np.sin(angle_offset)
 
-        # Rotate the vector for each arrowhead line segment
-        arrow_left_dx = cos_angle * unit_dx - sin_angle * unit_dy
-        arrow_left_dy = sin_angle * unit_dx + cos_angle * unit_dy
-        arrow_right_dx = cos_angle * unit_dx + sin_angle * unit_dy
-        arrow_right_dy = -sin_angle * unit_dx + cos_angle * unit_dy
+        # # Rotate the vector for each arrowhead line segment
+        # arrow_left_dx = cos_angle * unit_dx - sin_angle * unit_dy
+        # arrow_left_dy = sin_angle * unit_dx + cos_angle * unit_dy
+        # arrow_right_dx = cos_angle * unit_dx + sin_angle * unit_dy
+        # arrow_right_dy = -sin_angle * unit_dx + cos_angle * unit_dy
 
-        # Arrowhead line endpoints
-        arrow_left_x = end_x - arrowhead_length * arrow_left_dx
-        arrow_left_y = end_y - arrowhead_length * arrow_left_dy
-        arrow_right_x = end_x - arrowhead_length * arrow_right_dx
-        arrow_right_y = end_y - arrowhead_length * arrow_right_dy
+        # # Arrowhead line endpoints
+        # arrow_left_x = end_x - arrowhead_length * arrow_left_dx
+        # arrow_left_y = end_y - arrowhead_length * arrow_left_dy
+        # arrow_right_x = end_x - arrowhead_length * arrow_right_dx
+        # arrow_right_y = end_y - arrowhead_length * arrow_right_dy
 
-        # Update the arrowhead line segments
-        arrowhead_left.set_data([end_x, arrow_left_x], [end_y, arrow_left_y])
-        arrowhead_left.set_3d_properties([0, 0])
-        arrowhead_left.set_color(arrow_color)
-        arrowhead_right.set_data([end_x, arrow_right_x], [end_y, arrow_right_y])
-        arrowhead_right.set_3d_properties([0, 0])
-        arrowhead_right.set_color(arrow_color)
+        # # Update the arrowhead line segments
+        # arrowhead_left.set_data([end_x, arrow_left_x], [end_y, arrow_left_y])
+        # arrowhead_left.set_3d_properties([0, 0])
+        # arrowhead_left.set_color(arrow_color)
+        # arrowhead_right.set_data([end_x, arrow_right_x], [end_y, arrow_right_y])
+        # arrowhead_right.set_3d_properties([0, 0])
+        # arrowhead_right.set_color(arrow_color)
 
     else:
         center_point.set_data([], [])
-        vector_line.set_data([], [])
-        additional_vector.set_data([], [])
-        arrowhead_left.set_data([], [])
-        arrowhead_right.set_data([], [])
+        # vector_line.set_data([], [])
+        # additional_vector.set_data([], [])
+        # arrowhead_left.set_data([], [])
+        # arrowhead_right.set_data([], [])
 
-    return [trajectory_line, center_point, vector_line, additional_vector, arrowhead_left, arrowhead_right]
+    # return [trajectory_line, center_point, vector_line, additional_vector, arrowhead_left, arrowhead_right]
+    return [trajectory_line, center_point]
 
 # Animate with frames progressing over the length of the trajectory
 ani = FuncAnimation(fig, update, frames=len(x_filtered), interval=20, blit=True)
+
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+# Save the animation to a file
+video_filename = "screw_motion.mp4"
+ani.save(video_filename, fps=150, extra_args=['-vcodec', 'libx264'])
+
+# Generate the HTML snippet for embedding the video
+html_snippet = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Animated Screw Motion</title>
+</head>
+<body>
+    <h1>3D Animated Screw Motion</h1>
+    <video width="640" height="480" controls>
+        <source src="{video_filename}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+</body>
+</html>
+"""
+
+# Save the HTML snippet to a file
+html_filename = "screw_motion.html"
+with open(html_filename, "w") as html_file:
+    html_file.write(html_snippet)
+
+print(f"Animation saved as '{video_filename}' and HTML saved as '{html_filename}'.")
+
 
 plt.legend()
 plt.show()

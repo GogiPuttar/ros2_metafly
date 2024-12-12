@@ -41,7 +41,7 @@ target_include_directories(metaflylib
 # specify additional compilation flags for the library
 # Public causes the flags to propagate to anything
 # that links against this library
-target_compile_options(metaflylib PUBLIC -Wall -Wextra -pedantic)
+target_compile_options(metaflylib PUBLIC -Wall -Wextra)
 
 # Enable c++17 support.
 # Public causes the features to propagate to anything

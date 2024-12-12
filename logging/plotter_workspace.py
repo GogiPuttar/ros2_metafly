@@ -7,7 +7,7 @@ from alphashape import alphashape
 import trimesh
 
 # Load the pickle file
-filename = 'sessions/session_66/run_1.pkl'
+filename = 'sessions/session_70/run_1.pkl'
 with open(filename, 'rb') as file:
     data = pickle.load(file)
 
@@ -152,11 +152,12 @@ fig.update_layout(
     title='Interactive 3D Surface of the Observable Workspace',
     margin=dict(l=0, r=0, b=0, t=40),
     paper_bgcolor='black',  # Set the surrounding background color to black
-    font=dict(color='white')  # Set the font color to white for better contrast
+    font=dict(color='white'),  # Set the font color to white for better contrast
+    dragmode='orbit'
 )
 
 # Save the plot as an HTML file
-fig.write_html('3d_plot_interactive.html')
+fig.write_html('3d_plot_interactive_draggable.html')
 
 print("Interactive 3D plot saved as '3d_plot_interactive.html'")
 
@@ -240,4 +241,5 @@ Session Run Info
 11      1   Scan of workspace. Less focus on the floor
 14      1   Scan of workspace after callibration on Oct 15
 66      1   Scan of workspace after adding 6 cameras + "poor" callibration on Nov 3
+70      1   Scan of workspace on Dec 7
 """

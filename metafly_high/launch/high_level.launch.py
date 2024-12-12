@@ -32,6 +32,8 @@ def generate_launch_description():
         get_package_share_directory('metafly_high'), 'config', 'geometric.rviz')
     rviz_returning_config_path = os.path.join(
         get_package_share_directory('metafly_high'), 'config', 'returning.rviz')
+    rviz_drift_config_path = os.path.join(
+        get_package_share_directory('metafly_high'), 'config', 'drift.rviz')
 
     # Path to listener.launch.py
     listener_launch_path = os.path.join(get_package_share_directory('metafly_listener'), 'launch', 'listener.launch.py')
@@ -79,6 +81,15 @@ def generate_launch_description():
         name='high_level_returning',
         output='screen',
         condition=IfCondition(EqualsSubstitution(policy, 'returning'))
+    )
+
+    # Conditionally launch the high_level_drift node if policy is set to "drift"
+    high_level_drift_node = Node(
+        package='metafly_high',
+        executable='high_level_drift',
+        name='high_level_drift',
+        output='screen',
+        condition=IfCondition(EqualsSubstitution(policy, 'drift'))
     )
 
     # RViz node with basic config (conditionally launched if use_high_rviz is true and policy is basic)
@@ -141,6 +152,18 @@ def generate_launch_description():
         ]))
     )
 
+    # RViz node with drift config (conditionally launched if use_high_rviz is true and policy is drift)
+    rviz_drift_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen',
+        arguments=['-d', rviz_drift_config_path],
+        condition=IfCondition(PythonExpression([
+            '"drift" == "', policy, '" and "true" == "', use_high_rviz, '"'
+        ]))
+    )
+
     # Include listener.launch.py with use_rviz set to false and ps3_override passed through
     listener_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(listener_launch_path),
@@ -158,9 +181,11 @@ def generate_launch_description():
         high_level_switching_node,
         high_level_geometric_node,
         high_level_returning_node,
+        high_level_drift_node,
         rviz_basic_node,
         rviz_PID_node,
         rviz_switching_node,
         rviz_geometric_node,
         rviz_returning_node,
+        rviz_drift_node,
     ])

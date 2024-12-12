@@ -32,6 +32,7 @@ setup(
             'high_level_switching = metafly_high.high_level_switching:main',
             'high_level_geometric = metafly_high.high_level_geometric:main',
             'high_level_returning = metafly_high.high_level_returning:main',
+            'high_level_drift = metafly_high.high_level_drift:main',
             'logger = metafly_high.logger:main',
         ],
     },

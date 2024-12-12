@@ -3,7 +3,8 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, Point, Vector3
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import Marker, MarkerArray
+from nav_msgs.msg import Path
 from metafly_interfaces.msg import Controls
 from std_msgs.msg import ColorRGBA
 import tf_transformations
@@ -23,15 +24,15 @@ class State(Enum):
     RETURNING = auto()       # Robot performs a return maneuver toward the ellipse
 
 
-class HighLevelReturning(Node):
+class HighLevelDrift(Node):
     """
     High-level control node for a bird robot navigating within a defined workspace.
     Handles trajectory management, state transitions, and visualization markers for RViz.
     """
 
     def __init__(self):
-        super().__init__('high_level_returning')
-        self.get_logger().info('High-level returning node initialized')
+        super().__init__('high_level_drift')
+        self.get_logger().info('High-level drift node initialized')
 
         # Subscriber to the Pose data
         self.pose_subscriber = self.create_subscription(
@@ -51,6 +52,9 @@ class HighLevelReturning(Node):
         self.ellipse_marker_publisher = self.create_publisher(Marker, 'ellipse_marker', 10)
         self.tangent_marker_publisher = self.create_publisher(Marker, 'return_tangent_marker', 10)
         self.box_marker_publisher = self.create_publisher(Marker, 'bounding_box_marker', 10)
+        self.trajectory_path_publisher = self.create_publisher(Path, 'trajectory_path', 10)
+        self.drift_marker_publisher = self.create_publisher(MarkerArray, 'drift_markers', 10)
+        self.wind_marker_publisher = self.create_publisher(MarkerArray, 'wind_markers', 10)
 
         # Timer to publish at 100 Hz
         self.create_timer(1 / 100.0, self.timer_callback)
@@ -66,7 +70,7 @@ class HighLevelReturning(Node):
         self.max_identical_duration = 1.5  # seconds
 
         # Marker parameters
-        self.target = Point(x=0.5, y=-0.7, z=0.0)
+        self.target = Point(x=0.5, y=-0.3, z=0.0)
         self.center = Point(x=0.0, y=0.0, z=0.0)
         self.tangent_direction = Vector3(x=0.0, y=0.0, z=0.0)
         self.tangent_length = 1.0
@@ -81,7 +85,8 @@ class HighLevelReturning(Node):
         # Define ellipse constraints
         self.return_ellipse = {
             "center": [self.target.x, self.target.y],
-            "semiaxes": [1.7, 1.5]
+            # "semiaxes": [1.7, 1.5]
+            "semiaxes": [1.0, 1.0]
         }
 
         # Parameters for circle fitting
@@ -89,8 +94,15 @@ class HighLevelReturning(Node):
         self.max_sensible_radius = 4.0  # Maximum allowable radius for center correction
         self.current_radius = 0.0
 
+        # Parameters for heading fitting
+        self.heading_window_size = 10 # > 2
+        self.max_sensible_speed = 10.0                  # (m/s)
+        self.min_sensible_speed = 0.0                   # (m/s)
+        self.current_heading = np.array([0.0, 0.0, 0.0])# (m/s)
+
         # Tracking state
         self.tracking_state = State.UNTRACKED  # Initial state
+        self.previous_tracking_state = State.UNTRACKED # Initial state
 
         # Parameters for lower frequency updates
         self.counter = 0
@@ -124,8 +136,27 @@ class HighLevelReturning(Node):
         self.kp_roll = 100.0  # Converts roll (rad) to steering command (-127 to 127)
         self.kd_roll = 0.0    # Converts roll speed (rad/s) to steering command (default: 50,000)
         self.kp_radius = 0.5  # Converts radius (m) to roll (rad)
-        self.kp_yaw = 0.3     # Converts yaw (rad) to roll (rad)
+        # self.kp_yaw = 0.3     # Converts yaw (rad) to roll (rad)
+        self.kp_yaw = 1.5     # Converts yaw (rad) to roll (rad)
         self.kp_z = 50.0      # Converts height (m) to speed command (0 to 127)
+
+        # Initialize drift vectors
+        self.actual_velocity = np.array([0.0, 0.0, 0.0])
+        self.heading_velocity = np.array([0.0, 0.0, 0.0])
+        self.drift_velocity = np.array([0.0, 0.0, 0.0])
+        self.thrust_speed = 2.6
+        # self.thrust_velocity_body = np.array([2.6, 0.0, 0.0])
+        self.drift_marker_frequency = 1  # Initialize drift marker frequency
+        self.drift_velocity_history = []
+        self.wind_velocity = np.array([0.0, 0.0, 0.0])
+        self.wind_alpha = 0.5
+
+        # Initialize trajectory markers
+        self.path = Path()
+        self.path.header.frame_id = "world"
+
+        # Drift markers
+        self.drift_markers = MarkerArray()
 
     def pose_callback(self, msg):
         """
@@ -155,9 +186,20 @@ class HighLevelReturning(Node):
         Main timer callback executed at 100 Hz.
         Manages state transitions and publishes controls/markers based on the current state.
         """
+
+        # Handle trajectory path and drift markers
+        if self.tracking_state != self.previous_tracking_state:
+            if (not self.tracking_state in [State.UNTRACKED]) and (self.previous_tracking_state in [State.UNTRACKED]):  # Transition back to a valid state
+                self.get_logger().info("Resetting trajectory and drift markers.")
+                self.clear_markers()  # Clear trajectory and drift markers
+                self.drift_velocity_history.clear()
+        self.previous_tracking_state = self.tracking_state
+
+        # Update counter
         self.counter += 1
 
         if self.current_pose is not None:
+
             # Handle untracked state
             if self.pose_identical_time is not None:
                 current_time = self.get_clock().now()
@@ -165,6 +207,8 @@ class HighLevelReturning(Node):
                     self.get_logger().debug(f"Pose untracked for {self.max_identical_duration} seconds. Stopping updates.")
                     self.tracking_state = State.UNTRACKED
                     self.publish_controls(0, 0)
+                    # self.publish_trajectory_path()
+                    # self.publish_drift_markers()
                     return
 
             # Check bounds and transition states
@@ -172,6 +216,8 @@ class HighLevelReturning(Node):
                 self.get_logger().debug("The bird is out of bounds.")
                 self.tracking_state = State.OUT_OF_BOUNDS
                 self.publish_controls(0, 0)
+                # self.publish_trajectory_path()
+                # self.publish_drift_markers()
                 return
 
             if self.is_pose_out_of_ellipse(self.current_pose.pose):
@@ -183,14 +229,32 @@ class HighLevelReturning(Node):
             # Perform marker and control updates
             if self.counter % self.calculation_interval == 0:
                 self.update_center_and_radius()
+                self.fit_velocity()
+
+                self.current_heading = self.get_heading_from_quaternion(self.current_pose.pose.orientation)
+
+                self.thrust_velocity_world = self.current_heading * self.thrust_speed
+                # self.thrust_velocity_world = self.current_heading * self.thrust_speed
+                self.drift_velocity = self.actual_velocity - self.thrust_velocity_world
+                # self.get_logger().info(f"Actual: {self.actual_velocity[0], self.actual_velocity[1], self.actual_velocity[2]}, Heading: {self.heading_velocity[0], self.heading_velocity[1], self.heading_velocity[2]}, Drift: {self.drift_velocity[0], self.drift_velocity[1], self.drift_velocity[2]}")
+                # self.get_logger().info(f"Actual speed: {np.linalg.norm(self.actual_velocity)}")
+                self.drift_velocity_history.append(Vector3(x=self.drift_velocity[0], y=self.drift_velocity[1], z=self.drift_velocity[2]))
+                self.wind_velocity = self.wind_alpha * self.drift_velocity + (1 - self.wind_alpha) * self.wind_velocity
 
             self.publish_markers()
+            self.publish_trajectory_path()
+            self.publish_drift_markers()
+            self.publish_wind_markers()
 
             if self.tracking_state == State.CIRCLING:
-                self.radius_and_height_control(self.target_radius, self.target_z)
+                # self.radius_and_height_control(self.target_radius, self.target_z)
+                # self.limitcycle_and_height_control(self.target_radius, self.target_z)
+                self.drift_and_height_control(0.0, self.target_z)
             elif self.tracking_state == State.RETURNING:
-                self.publish_return_tangent_marker()
-                self.return_maneuver()
+                # self.publish_return_tangent_marker()
+                # self.return_maneuver()
+                # self.limitcycle_and_height_control(self.target_radius, self.target_z)
+                self.drift_and_height_control(0.0, self.target_z)
 
     def is_pose_identical(self, pose1, pose2):
         """
@@ -302,6 +366,37 @@ class HighLevelReturning(Node):
         radius = np.mean(radii)
         return xc, yc, radius
 
+    def fit_velocity(self):
+        """
+        Fits the actual velocity vector using recent pose readings.
+        Updates `self.actual_velocity`.
+        """
+        if len(self.pose_history) < 2:
+            return
+
+        recent_poses = self.pose_history[-self.heading_window_size:]
+        displacements = []
+        for i in range(1, len(recent_poses)):
+            pose_prev = recent_poses[i - 1].pose
+            pose_curr = recent_poses[i].pose
+            delta_t = (recent_poses[i].header.stamp.sec + recent_poses[i].header.stamp.nanosec * 1e-9) - \
+                      (recent_poses[i - 1].header.stamp.sec + recent_poses[i - 1].header.stamp.nanosec * 1e-9)
+
+            if delta_t <= 0:
+                continue
+
+            displacement = np.array([
+                pose_curr.position.x - pose_prev.position.x,
+                pose_curr.position.y - pose_prev.position.y,
+                pose_curr.position.z - pose_prev.position.z
+            ])
+            speed = np.linalg.norm(displacement) / delta_t
+            if self.min_sensible_speed <= speed <= self.max_sensible_speed:
+                displacements.append(displacement / delta_t)
+
+        if displacements:
+            self.actual_velocity = np.mean(displacements, axis=0)
+
     def return_maneuver(self):
         """
         Executes a return maneuver by adjusting yaw and roll control to align with the tangent direction.
@@ -329,6 +424,57 @@ class HighLevelReturning(Node):
         else:
             self.get_logger().warn("Ellipse and target circle are intersecting!")
 
+    def limitcycle_and_height_control(self, radius_desired, height_desired):
+        
+        current_x = self.current_pose.pose.position.x
+        current_y = self.current_pose.pose.position.y
+        current_z = self.current_pose.pose.position.z
+        current_roll, _, current_yaw = self.OrientationRPY()
+        actual_direction = np.arctan2(self.actual_velocity[1], self.actual_velocity[0])
+
+        x_err = current_x - self.target.x
+        y_err = current_y - self.target.y
+
+        angular_velocity = self.thrust_speed / radius_desired
+        forcing = 2.0
+        H = np.linalg.norm(np.array([x_err, y_err])) / radius_desired
+
+        x_dot = angular_velocity * y_err + forcing * (1 - H) * x_err
+        y_dot = -angular_velocity * x_err + forcing * (1 - H) * y_err
+
+        target_yaw = np.arctan2(y_dot, x_dot)
+
+        speed_command = self.height_P(current_z, height_desired, self.feedforward_speed)
+        steering_command = self.yaw_P(actual_direction, current_roll, target_yaw, feedforward_roll=0.3)
+        self.get_logger().info(f"Speed: {speed_command}, Steering: {steering_command}, Yaw: {(target_yaw - current_yaw + np.pi) % (2 * np.pi) - np.pi:.2f}")
+        self.publish_controls(speed_command, steering_command)
+
+##################################################################################################
+
+    def drift_and_height_control(self, drift_desired=0.0, height_desired=1.5):
+        
+        current_x = self.current_pose.pose.position.x
+        current_y = self.current_pose.pose.position.y
+        current_z = self.current_pose.pose.position.z
+        current_roll, _, current_yaw = self.OrientationRPY()
+        drift_direction = np.arctan2(self.drift_velocity[1], self.drift_velocity[0])
+
+        drift_speed = np.linalg.norm(np.array([self.actual_velocity[0], self.actual_velocity[1]]))
+        drift_direction_offset = (current_yaw - drift_direction + np.pi) % (2 * np.pi) - np.pi
+        
+        error_lateral_speed = drift_desired - np.linalg.norm(drift_speed) * np.sin(drift_direction_offset)
+
+        kp_drift = 0.05
+        kp_drift = 0.0
+
+        speed_command = self.height_P(current_z, height_desired, self.feedforward_speed)
+        steering_command = self.roll_PD(current_roll, target_roll=self.feedforward_roll + kp_drift * error_lateral_speed)
+
+        self.get_logger().info(f"Speed: {speed_command}, Steering: {steering_command}, SPDerr: {error_lateral_speed:.2f}")
+        self.publish_controls(speed_command, steering_command)
+
+##################################################################################################
+
     def radius_and_height_control(self, radius_desired, height_desired):
         """
         Adjusts speed and steering to maintain the target radius and height.
@@ -340,7 +486,7 @@ class HighLevelReturning(Node):
         current_roll, _, _ = self.OrientationRPY()
         speed_command = self.height_P(self.current_pose.pose.position.z, height_desired, self.feedforward_speed)
         steering_command = self.radius_P(self.current_radius, current_roll, radius_desired, feedforward_roll=self.feedforward_roll)
-        self.get_logger().info(f"Speed: {speed_command}, Steering: {steering_command}, Radius: {self.current_radius}")
+        # self.get_logger().info(f"Speed: {speed_command}, Steering: {steering_command}, Radius: {self.current_radius}")
         self.publish_controls(speed_command, steering_command)
 
     def height_P(self, current_z, target_z, feedforward_speed):
@@ -387,7 +533,9 @@ class HighLevelReturning(Node):
         Returns:
         - int: Steering command.
         """
-        error_yaw = (current_yaw - target_yaw + np.pi) % (2 * np.pi) - np.pi # positive yaw error implies negative roll error
+        error_yaw = (current_yaw - target_yaw + np.pi) % (2 * np.pi) - np.pi
+        # error_yaw = (target_yaw - current_yaw + np.pi) % (2 * np.pi) - np.pi
+        # self.get_logger().info(f"target roll: {feedforward_roll + self.kp_yaw * error_yaw:.2f}")
         return self.roll_PD(current_roll, target_roll=feedforward_roll + self.kp_yaw * error_yaw)
 
     def roll_PD(self, current_roll, target_roll, feedforward_steering=0):
@@ -421,6 +569,65 @@ class HighLevelReturning(Node):
             self.current_pose.pose.orientation.z,
             self.current_pose.pose.orientation.w
         ])
+    
+    def get_heading_from_quaternion(self, quaternion):
+        """
+        Extracts the X-axis vector from a quaternion.
+
+        Parameters:
+        - quaternion (geometry_msgs.msg.Quaternion): Quaternion to extract the X-axis.
+
+        Returns:
+        - np.array: The X-axis as a 3D vector.
+        """
+        # Convert quaternion to rotation matrix
+        rotation_matrix = tf_transformations.quaternion_matrix([
+            quaternion.x,
+            quaternion.y,
+            quaternion.z,
+            quaternion.w
+        ])
+
+        # Extract the X-axis (first column of the rotation matrix)
+        x_axis = rotation_matrix[:3, 0]  # First column (3D vector)
+        return x_axis
+    
+    def angle_between_2D_vectors(self, v1, v2):
+        # Convert the vectors to numpy arrays
+        v1 = np.array(v1)
+        v2 = np.array(v2)
+        
+        # Compute the dot product and magnitudes of the vectors
+        dot_product = np.dot(v1, v2)
+        magnitude_v1 = np.linalg.norm(v1)
+        magnitude_v2 = np.linalg.norm(v2)
+        
+        # Avoid division by zero
+        if magnitude_v1 == 0 or magnitude_v2 == 0:
+            self.get_logger().warn("Vectors must not be zero vectors!")
+            return 0.0
+        
+        # Calculate the cosine of the angle
+        cos_theta = dot_product / (magnitude_v1 * magnitude_v2)
+        
+        # Clamp the cosine value to the valid range [-1, 1] to avoid floating-point errors
+        cos_theta = np.clip(cos_theta, -1, 1)
+        
+        # Calculate the angle in radians and convert to degrees if needed
+        angle_radians = np.arccos(cos_theta)
+        
+        return angle_radians
+    
+    def clear_markers(self):
+        """
+        Clears all trajectory and drift markers.
+        """
+        self.path = Path()
+        self.path.header.frame_id = "world"
+        self.trajectory_path_publisher.publish(self.path)
+
+        self.drift_markers = MarkerArray()
+        self.drift_marker_publisher.publish(self.drift_markers)
 
     def publish_markers(self):
         """
@@ -450,6 +657,16 @@ class HighLevelReturning(Node):
             marker.points.append(point)
 
         self.trajectory_marker_publisher.publish(marker)
+
+    def publish_trajectory_path(self):
+        """
+        Publishes the trajectory as a Path message for RViz.
+        """
+        pose_stamped = PoseStamped()
+        pose_stamped.header = self.current_pose.header
+        pose_stamped.pose = self.current_pose.pose
+        self.path.poses.append(pose_stamped)
+        self.trajectory_path_publisher.publish(self.path)
 
     def publish_center_marker(self):
         """
@@ -533,6 +750,117 @@ class HighLevelReturning(Node):
         marker.points.append(Point(x=tangent_end_x, y=tangent_end_y, z=0.0))  # End point
         self.tangent_marker_publisher.publish(marker)
 
+    def publish_drift_markers(self):
+        """
+        Publishes a MarkerArray of arrows representing the drift vectors along the entire path.
+        Drift markers are published at a reduced frequency based on the total number of points in the path.
+        """
+        marker_array = MarkerArray()
+
+        if len(self.path.poses) < 2:  # Ensure there are enough points for drift markers
+            return
+
+        # Calculate the frequency for drift markers
+        self.drift_marker_frequency = max(1, len(self.path.poses) // 20)
+        self.drift_marker_frequency = 10
+        arrow_scale = 0.15
+
+        for i in range(0, len(self.path.poses), self.drift_marker_frequency):
+            pose = self.path.poses[i].pose
+            drift_velocity = self.drift_velocity_history[i]
+
+            # Create an arrow marker for the drift vector
+            marker = Marker()
+            marker.header.frame_id = "world"
+            marker.header.stamp = self.get_clock().now().to_msg()
+            marker.ns = "drift_arrows"
+            marker.id = i + 6
+            marker.type = Marker.ARROW
+            marker.action = Marker.ADD
+
+            # Calculate drift velocity for the current point
+            # actual_velocity = np.array([pose.position.x, pose.position.y, pose.position.z])
+            # heading_velocity = self.get_heading_from_quaternion(pose)
+            # drift_velocity = actual_velocity - heading_velocity
+
+            # Define the start and end points of the arrow
+            start_point = Point(
+                x=pose.position.x,
+                y=pose.position.y,
+                z=pose.position.z
+            )
+            end_point = Point(
+                x=pose.position.x + arrow_scale * drift_velocity.x,
+                y=pose.position.y + arrow_scale * drift_velocity.y,
+                z=pose.position.z + arrow_scale * drift_velocity.z
+            )
+
+            # Set marker properties
+            marker.points = [start_point, end_point]
+            marker.scale = Vector3(x=0.005, y=0.02, z=0.02)  # Arrow thickness
+            marker.color = ColorRGBA(r=0.2, g=0.9, b=0.3, a=1.0)  # Red for drift
+
+            # Add the marker to the MarkerArray
+            marker_array.markers.append(marker)
+
+        # Publish the MarkerArray
+        self.drift_marker_publisher.publish(marker_array)
+
+    def publish_wind_markers(self):
+        """
+        Publishes a MarkerArray of arrows representing the drift vectors along the entire path.
+        Drift markers are published at a reduced frequency based on the total number of points in the path.
+        """
+        marker_array = MarkerArray()
+
+        if len(self.path.poses) < 2:  # Ensure there are enough points for drift markers
+            return
+
+        # Calculate the frequency for drift markers
+        self.wind_marker_frequency = 10
+        arrow_scale = 0.15
+
+        for i in range(0, len(self.path.poses), self.wind_marker_frequency):
+            pose = self.path.poses[i].pose
+            # drift_velocity = self.drift_velocity_history[i]
+
+            # Create an arrow marker for the drift vector
+            marker = Marker()
+            marker.header.frame_id = "world"
+            marker.header.stamp = self.get_clock().now().to_msg()
+            marker.ns = "wind_arrows"
+            marker.id = i + 6
+            marker.type = Marker.ARROW
+            marker.action = Marker.ADD
+
+            # Calculate drift velocity for the current point
+            # actual_velocity = np.array([pose.position.x, pose.position.y, pose.position.z])
+            # heading_velocity = self.get_heading_from_quaternion(pose)
+            # drift_velocity = actual_velocity - heading_velocity
+
+            # Define the start and end points of the arrow
+            start_point = Point(
+                x=pose.position.x,
+                y=pose.position.y,
+                z=pose.position.z
+            )
+            end_point = Point(
+                x=pose.position.x + arrow_scale * self.wind_velocity[0],
+                y=pose.position.y + arrow_scale * self.wind_velocity[1],
+                z=pose.position.z + arrow_scale * self.wind_velocity[2]
+            )
+
+            # Set marker properties
+            marker.points = [start_point, end_point]
+            marker.scale = Vector3(x=0.005, y=0.02, z=0.02)  # Arrow thickness
+            marker.color = ColorRGBA(r=0.0, g=0.8, b=1.0, a=1.0)  
+
+            # Add the marker to the MarkerArray
+            marker_array.markers.append(marker)
+
+        # Publish the MarkerArray
+        self.wind_marker_publisher.publish(marker_array)
+
     def publish_controls(self, speed=0, steering=0):
         """
         Publishes control commands (speed and steering) for the robot.
@@ -596,11 +924,11 @@ class HighLevelReturning(Node):
 
 def main(args=None):
     """
-    Main entry point for the high-level returning node.
+    Main entry point for the high-level drift node.
     Initializes the node and starts spinning.
     """
     rclpy.init(args=args)
-    node = HighLevelReturning()
+    node = HighLevelDrift()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
