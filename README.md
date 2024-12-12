@@ -44,9 +44,9 @@ Command for launching just the listener. Used to test communications.
 ## `metaflylib` (in progress)
 C++ library holding utility functions and classes for `metafly_high_cpp`. Compiles but is a work in progress.
 
-## arduino 
+## `arduino`
 Arduino scripts that initializes the transmitter module.
 
-## logging
+## `logging`
 Useful logging scripts for analyzing data from the system.
 
