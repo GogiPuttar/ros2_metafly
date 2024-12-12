@@ -2,13 +2,8 @@
 
 Portfolio post that uses this repo: [https://adityanairs.website/BirdFlying/](https://adityanairs.website/BirdFlying/)
 
-<figure align = "center">
-<img src="https://adityanairs.website/assets/images/birdsideview.gif" width="80%"/>
+![](https://adityanairs.website/assets/images/birdsideview.gif)
 
-<img src="https://adityanairs.website/assets/images/birdtopview.gif" width="80%"/>
-<figcaption><em> Top and side views of the bird successfully flying in circles.
-</em></figcaption>
-</figure>
 
 ## `metafly_control`
 
