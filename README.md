@@ -2,8 +2,6 @@
 
 Portfolio post that uses this repo: [https://adityanairs.website/BirdFlying/](https://adityanairs.website/BirdFlying/)
 
-![](https://adityanairs.website/assets/images/birdsideview.gif)
-
 ![](https://github.com/GogiPuttar/adityanairswebsite.github.io/blob/main/assets/images/birdsideview.gif?raw=true)
 
 
