@@ -9,14 +9,15 @@ Portfolio post that uses this repo: [https://adityanairs.website/BirdFlying/](ht
 
 Package that handles low level controls communication between the **transmitter module**, **ROS2 network**, and **PS3 Controller**. 
 
-Command for using a PS3 controller to fly the MetaFly
+Command for using a PS3 controller to fly the MetaFly:
+
 `ros2 launch metafly_control ps3.launch.xml`
 
 ## `metafly_high`
 
 Package that handles high level controls and motion planning.
 
-Command that launches the high level controller and trieggers all the relevant launch files for it.
+Command that launches the high level controller and trieggers all the relevant launch files for it:
 
 `ros2 launch metafly_high high_level.launch.py policy:=returning use_high_rviz:=true`
 
@@ -37,7 +38,7 @@ Houses custom message and service types:
 ## `metafly_listener`
 Package that handles UDP communication between **OptiTrack system** and **ROS2 network**
 
-Command for launching just the listener. Used to test communications.
+Command for launching just the listener. Used to test communications:
 
 `ros2 launch metafly_listener listener.launch.py`
 
@@ -49,4 +50,8 @@ Arduino scripts that initializes the transmitter module.
 
 ## `logging`
 Useful logging scripts for analyzing data from the system.
+
+Command to run the recording node that stores pose data and controls info as `.pkl` files:
+
+`ros2 run metafly_high logger`
 
