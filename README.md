@@ -51,7 +51,7 @@ Arduino scripts that initializes the transmitter module.
 ## `logging`
 Useful logging scripts for analyzing data from the system.
 
-Command to run the recording node that stores pose data and controls info as `.pkl` files:
+Command to run the recording node that stores pose data and controls commands as `.pkl` files:
 
 `ros2 run metafly_high logger`
 
