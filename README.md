@@ -1,6 +1,6 @@
 # ros2_metafly
 
-***This branch is currently a work in progress, and does not compile!***
+***This branch is currently a work in progress, and does not compile! Check default branch***
 
 Portfolio post that uses this repo: [https://adityanairs.website/BirdFlying/](https://adityanairs.website/BirdFlying/)
 
