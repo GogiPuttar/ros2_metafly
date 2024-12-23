@@ -4,6 +4,9 @@ Portfolio post that uses this repo: [https://adityanairs.website/BirdFlying/](ht
 
 ![](https://github.com/GogiPuttar/adityanairswebsite.github.io/blob/main/assets/images/birdsideview.gif?raw=true)
 
+**REQUIREMENTS:** 
+- ROS 2 Iron (for Humble, see ___ branch)
+- ROS 2 Jazzy might also work but has not been rigorously tested. 
 
 ## `metafly_control`
 
@@ -13,11 +16,16 @@ Command for using a PS3 controller to fly the MetaFly:
 
 `ros2 launch metafly_control ps3.launch.xml`
 
+**REQUIREMENTS:** 
+- PS3 Controller
+- LibSerial on Linux (Eg. `sudo apt install libserial-dev`)
+- [`metafly_interfaces`](#metafly_interfaces)
+
 ## `metafly_high`
 
 Package that handles high level controls and motion planning.
 
-Command that launches the high level controller and trieggers all the relevant launch files for it:
+Command that launches the high level controller and triggers all the relevant launch files for it:
 
 `ros2 launch metafly_high high_level.launch.py policy:=returning use_high_rviz:=true`
 
@@ -27,6 +35,10 @@ where `policy` can be:
 - switching
 - returning
 - drift
+
+**REQUIREMENTS:** 
+- ROS 2 TF2 Transformations (Eg. `sudo apt install ros-iron-tf*` or `sudo apt install ros-humble-tf*`)
+- [`metafly_interfaces`](#metafly_interfaces)
 
 ## `metafly_high_cpp` (in progress)
 C++ version of the metafly_high package. Currently non-functional.
@@ -42,11 +54,19 @@ Command for launching just the listener. Used to test communications:
 
 `ros2 launch metafly_listener listener.launch.py`
 
+**REQUIREMENTS:** 
+- ROS 2 TF2 Transformations (Eg. `sudo apt install ros-iron-tf*` or `sudo apt install ros-humble-tf*`)
+- [`metafly_interfaces`](#metafly_interfaces)
+
 ## `metaflylib` (in progress)
 C++ library holding utility functions and classes for `metafly_high_cpp`. Compiles but is a work in progress.
 
 ## `arduino`
 Arduino scripts that initializes the transmitter module.
+
+**REQUIREMENTS:** 
+- MetaFly transmitter module. [(More Info)](https://adityanairs.website/BirdFlying/#:~:text=Transmitter%20%2D%20Feedforward)
+- Arduino IDE for uploading code
 
 ## `logging`
 Useful logging scripts for analyzing data from the system.
@@ -54,4 +74,11 @@ Useful logging scripts for analyzing data from the system.
 Command to run the recording node that stores pose data and controls commands as `.pkl` files:
 
 `ros2 run metafly_high logger`
+
+**REQUIREMENTS:**
+- PKL Library (Eg. `pip install python-pkl`)
+
+**REQUIREMENTS:** 
+- ROS 2 TF2 Transformations (Eg. `sudo apt install ros-iron-tf*` or `sudo apt install ros-humble-tf*`)
+- [`metafly_interfaces`](#metafly_interfaces)
 
