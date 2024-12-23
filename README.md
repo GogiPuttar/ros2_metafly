@@ -5,7 +5,7 @@ Portfolio post that uses this repo: [https://adityanairs.website/BirdFlying/](ht
 ![](https://github.com/GogiPuttar/adityanairswebsite.github.io/blob/main/assets/images/birdsideview.gif?raw=true)
 
 **REQUIREMENTS:** 
-- ROS 2 Iron (for Humble, see ___ branch)
+- ROS 2 Iron (for Humble, see the [`ros2/humble`](https://github.com/GogiPuttar/ros2_metafly/tree/ros2/humble) branch)
 - ROS 2 Jazzy might also work but has not been rigorously tested. 
 
 ## `metafly_control`
