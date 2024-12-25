@@ -4,7 +4,6 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EqualsSubstitution
 from ament_index_python.packages import get_package_share_directory
 import os
 
@@ -38,133 +37,45 @@ def generate_launch_description():
     # Path to listener.launch.py
     listener_launch_path = os.path.join(get_package_share_directory('metafly_listener'), 'launch', 'listener.launch.py')
 
-    # Conditionally launch the high_level_basic node if policy is set to "basic"
-    high_level_basic_node = Node(
-        package='metafly_high',
-        executable='high_level_basic',
-        name='high_level_basic',
-        output='screen',
-        condition=IfCondition(EqualsSubstitution(policy, 'basic'))
-    )
+    # Helper function to generate Node with policy condition
+    def create_node(package, executable, name, condition_expression):
+        return Node(
+            package=package,
+            executable=executable,
+            name=name,
+            output='screen',
+            condition=IfCondition(PythonExpression([f'"{condition_expression}" == "', policy, '"']))
+        )
 
-    # Conditionally launch the high_level_PID node if policy is set to "PID"
-    high_level_PID_node = Node(
-        package='metafly_high',
-        executable='high_level_PID',
-        name='high_level_PID',
-        output='screen',
-        condition=IfCondition(EqualsSubstitution(policy, 'PID'))
-    )
+    # Nodes for different policies
+    high_level_basic_node = create_node('metafly_high', 'high_level_basic', 'high_level_basic', 'basic')
+    high_level_PID_node = create_node('metafly_high', 'high_level_PID', 'high_level_PID', 'PID')
+    high_level_switching_node = create_node('metafly_high', 'high_level_switching', 'high_level_switching', 'switching')
+    high_level_geometric_node = create_node('metafly_high', 'high_level_geometric', 'high_level_geometric', 'geometric')
+    high_level_returning_node = create_node('metafly_high', 'high_level_returning', 'high_level_returning', 'returning')
+    high_level_drift_node = create_node('metafly_high', 'high_level_drift', 'high_level_drift', 'drift')
 
-    # Conditionally launch the high_level_switching node if policy is set to "switching"
-    high_level_switching_node = Node(
-        package='metafly_high',
-        executable='high_level_switching',
-        name='high_level_switching',
-        output='screen',
-        condition=IfCondition(EqualsSubstitution(policy, 'switching'))
-    )
+    # RViz nodes with conditional configurations
+    def create_rviz_node(config_path, condition_expression):
+        return Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            output='screen',
+            arguments=['-d', config_path],
+            condition=IfCondition(PythonExpression([
+                f'"{condition_expression}" == "', policy, '" and "true" == "', use_high_rviz, '"'
+            ]))
+        )
 
-    # Conditionally launch the high_level_geometric node if policy is set to "geometric"
-    high_level_geometric_node = Node(
-        package='metafly_high',
-        executable='high_level_geometric',
-        name='high_level_geometric',
-        output='screen',
-        condition=IfCondition(EqualsSubstitution(policy, 'geoemtric'))
-    )
+    rviz_basic_node = create_rviz_node(rviz_basic_config_path, 'basic')
+    rviz_PID_node = create_rviz_node(rviz_PID_config_path, 'PID')
+    rviz_switching_node = create_rviz_node(rviz_switching_config_path, 'switching')
+    rviz_geometric_node = create_rviz_node(rviz_geometric_config_path, 'geometric')
+    rviz_returning_node = create_rviz_node(rviz_returning_config_path, 'returning')
+    rviz_drift_node = create_rviz_node(rviz_drift_config_path, 'drift')
 
-    # Conditionally launch the high_level_returning node if policy is set to "returning"
-    high_level_returning_node = Node(
-        package='metafly_high',
-        executable='high_level_returning',
-        name='high_level_returning',
-        output='screen',
-        condition=IfCondition(EqualsSubstitution(policy, 'returning'))
-    )
-
-    # Conditionally launch the high_level_drift node if policy is set to "drift"
-    high_level_drift_node = Node(
-        package='metafly_high',
-        executable='high_level_drift',
-        name='high_level_drift',
-        output='screen',
-        condition=IfCondition(EqualsSubstitution(policy, 'drift'))
-    )
-
-    # RViz node with basic config (conditionally launched if use_high_rviz is true and policy is basic)
-    rviz_basic_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        arguments=['-d', rviz_basic_config_path],
-        condition=IfCondition(PythonExpression([
-            '"basic" == "', policy, '" and "true" == "', use_high_rviz, '"'
-        ]))
-    )
-
-    # RViz node with PID config (conditionally launched if use_high_rviz is true and policy is PID)
-    rviz_PID_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        arguments=['-d', rviz_PID_config_path],
-        condition=IfCondition(PythonExpression([
-            '"PID" == "', policy, '" and "true" == "', use_high_rviz, '"'
-        ]))
-    )
-
-    # RViz node with switching config (conditionally launched if use_high_rviz is true and policy is switching)
-    rviz_switching_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        arguments=['-d', rviz_switching_config_path],
-        condition=IfCondition(PythonExpression([
-            '"switching" == "', policy, '" and "true" == "', use_high_rviz, '"'
-        ]))
-    )
-
-    # RViz node with geometric config (conditionally launched if use_high_rviz is true and policy is geometric)
-    rviz_geometric_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        arguments=['-d', rviz_geometric_config_path],
-        condition=IfCondition(PythonExpression([
-            '"geometric" == "', policy, '" and "true" == "', use_high_rviz, '"'
-        ]))
-    )
-
-    # RViz node with returning config (conditionally launched if use_high_rviz is true and policy is returning)
-    rviz_returning_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        arguments=['-d', rviz_returning_config_path],
-        condition=IfCondition(PythonExpression([
-            '"returning" == "', policy, '" and "true" == "', use_high_rviz, '"'
-        ]))
-    )
-
-    # RViz node with drift config (conditionally launched if use_high_rviz is true and policy is drift)
-    rviz_drift_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        arguments=['-d', rviz_drift_config_path],
-        condition=IfCondition(PythonExpression([
-            '"drift" == "', policy, '" and "true" == "', use_high_rviz, '"'
-        ]))
-    )
-
-    # Include listener.launch.py with use_rviz set to false and ps3_override passed through
+    # Include listener.launch.py
     listener_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(listener_launch_path),
         launch_arguments={
