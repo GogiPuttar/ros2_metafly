@@ -8,6 +8,17 @@ Portfolio post that uses this repo: [https://adityanairs.website/BirdFlying/](ht
 - ROS 2 Iron (for Humble, see the [`ros2/humble`](https://github.com/GogiPuttar/ros2_metafly/tree/ros2/humble) branch)
 - ROS 2 Jazzy might also work but has not been rigorously tested. 
 
+To cleanly swap your ROS 2 distribution:
+Eg. changing to `humble`
+```
+unset CMAKE_PREFIX_PATH
+unset AMENT_PREFIX_PATH
+source /opt/ros/humble/setup.bash
+echo $CMAKE_PREFIX_PATH   # should be empty
+echo $AMENT_PREFIX_PATH   # should be /opt/ros/humble
+echo $ROS_DISTRO          # should be humble
+```
+
 ## `metafly_control`
 
 Package that handles low level controls communication between the **transmitter module**, **ROS2 network**, and **PS3 Controller**. 
