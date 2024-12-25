@@ -1,5 +1,7 @@
 # ros2_metafly
 
+***This project was first developed in Iron and then modified for being compatible with Humble. Therefore, the Humble version has not been as rigorously tested as the Iron version.***
+
 Portfolio post that uses this repo: [https://adityanairs.website/BirdFlying/](https://adityanairs.website/BirdFlying/)
 
 ![](https://github.com/GogiPuttar/adityanairswebsite.github.io/blob/main/assets/images/birdsideview.gif?raw=true)
