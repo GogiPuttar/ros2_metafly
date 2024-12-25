@@ -9,14 +9,14 @@ Portfolio post that uses this repo: [https://adityanairs.website/BirdFlying/](ht
 - ROS 2 Jazzy might also work but has not been rigorously tested. 
 
 To cleanly swap your ROS 2 distribution:
-Eg. changing to `humble`
+Eg. changing to `iron`
 ```
 unset CMAKE_PREFIX_PATH
 unset AMENT_PREFIX_PATH
-source /opt/ros/humble/setup.bash
+source /opt/ros/iron/setup.bash
 echo $CMAKE_PREFIX_PATH   # should be empty
-echo $AMENT_PREFIX_PATH   # should be /opt/ros/humble
-echo $ROS_DISTRO          # should be humble
+echo $AMENT_PREFIX_PATH   # should be /opt/ros/iron
+echo $ROS_DISTRO          # should be iron
 ```
 
 ## `metafly_control`
